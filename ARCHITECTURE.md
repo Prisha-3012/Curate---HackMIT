@@ -399,6 +399,27 @@ One person per file. `main.py` is written once in hour 0 and never touched again
 
 Everything below changed after the original Doc was written. Each entry says why.
 
+### 2026-09-19 — Gemini as a third provider, and a preflight check
+
+`decompose.py` now knows three providers — Gemini, OpenAI, xAI — all over the
+OpenAI chat-completions protocol. `LLM_PROVIDER=auto` takes the first key that
+is set, Gemini first, because it is the one with a free tier.
+
+They differ in how JSON can be demanded. `strict: true` inside a `json_schema`
+response format is OpenAI's own feature: the API enforces the shape. Compat
+layers commonly **accept the field and ignore the enforcement**, which is worse
+than not supporting it — the model returns prose, parsing fails, and the fixture
+fallback makes it look like decomposition is working. So each provider declares
+`structured: "schema" | "object"`; under `"object"` the shape is spelled out in
+the prompt and every field is parsed defensively (a bare list, needs under an
+unexpected key, `attrs` as a plain object rather than a key/value array).
+
+`python -m apps.api.preflight` makes one minimal call per configured provider
+and prints what came back. `/health` reports whether a key is PRESENT, which is
+a different question: both keys in this repo were present, valid, and had zero
+credits, and the only symptom was every goal quietly decomposing into the seeded
+wardrobe needs.
+
 ### 2026-09-19 — `budget_cents` nullable, and `Plan.source`
 
 Two fields on the §4 contract, both because the API could not previously tell

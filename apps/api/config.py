@@ -27,6 +27,8 @@ class Settings(BaseSettings):
 
     openai_api_key: Optional[str] = None
     xai_api_key: Optional[str] = None
+    #: Google AI Studio. Uses Gemini's OpenAI-compatible endpoint.
+    gemini_api_key: Optional[str] = None
     #: 'xai' | 'openai' | 'auto'. auto prefers whichever key is present,
     #: xAI first.
     llm_provider: str = "auto"

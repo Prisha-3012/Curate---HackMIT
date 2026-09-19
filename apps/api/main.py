@@ -59,8 +59,13 @@ def health() -> dict:
     return {
         "ok": True,
         "demo_mode": DEMO_MODE,
+        # PRESENT, not working. A present key with no credit behind it reads
+        # true here and still decomposes every goal into the seeded needs —
+        # `python -m apps.api.preflight` is what answers "does it work".
         "credentials_present": {
+            "gemini": bool(s.gemini_api_key),
             "openai": bool(s.openai_api_key),
+            "xai": bool(s.xai_api_key),
             "supabase": bool(s.supabase_url and s.supabase_key),
             "cybersource": bool(s.cybersource_merchant_id and s.cybersource_secret_key),
             "deepgram": bool(s.deepgram_api_key),

@@ -24,6 +24,7 @@ def _settings(**overrides):
     base = {
         "openai_api_key": None,
         "xai_api_key": None,
+        "gemini_api_key": None,
         "llm_provider": "auto",
         "llm_model": None,
         "llm_timeout_s": 4.0,
@@ -164,18 +165,23 @@ def test_no_keys_means_no_provider(with_settings):
     assert decompose.pick_provider() is None
 
 
-def test_auto_prefers_xai_when_both_keys_are_set(with_settings):
+def test_auto_prefers_gemini_then_xai_then_openai(with_settings):
+    """Gemini first: it is the one with a free tier, so it is the key most
+    likely to have credit behind it."""
+    with_settings(openai_api_key="sk-o", xai_api_key="sk-x", gemini_api_key="sk-g")
+    assert decompose.pick_provider().name == "gemini"
+
     with_settings(openai_api_key="sk-o", xai_api_key="sk-x")
-    name, url, _model, key = decompose.pick_provider()
-    assert (name, key) == ("xai", "sk-x")
-    assert "x.ai" in url
+    chosen = decompose.pick_provider()
+    assert (chosen.name, chosen.key) == ("xai", "sk-x")
+    assert "x.ai" in chosen.url
 
 
 def test_auto_falls_through_to_the_key_that_exists(with_settings):
     with_settings(openai_api_key="sk-o")
-    name, url, _model, key = decompose.pick_provider()
-    assert (name, key) == ("openai", "sk-o")
-    assert "openai.com" in url
+    chosen = decompose.pick_provider()
+    assert (chosen.name, chosen.key) == ("openai", "sk-o")
+    assert "openai.com" in chosen.url
 
 
 def test_an_explicit_provider_without_its_key_is_not_silently_swapped(with_settings):
@@ -187,14 +193,12 @@ def test_an_explicit_provider_without_its_key_is_not_silently_swapped(with_setti
 
 def test_an_unknown_provider_warns_and_behaves_like_auto(with_settings):
     with_settings(openai_api_key="sk-o", llm_provider="anthropic")
-    name, _url, _model, _key = decompose.pick_provider()
-    assert name == "openai"
+    assert decompose.pick_provider().name == "openai"
 
 
 def test_llm_model_overrides_the_provider_default(with_settings):
     with_settings(xai_api_key="sk-x", llm_model="grok-9-ultra")
-    _name, _url, model, _key = decompose.pick_provider()
-    assert model == "grok-9-ultra"
+    assert decompose.pick_provider().model == "grok-9-ultra"
 
 
 # --- decompose(): the live path and every fallback -------------------------
@@ -342,3 +346,89 @@ def test_the_prompt_carries_the_catalogue_to_the_model(with_settings, monkeypatc
     assert "a dinner for twelve" in user_message
     assert "Known categories:" in user_message
     assert "cookware" in user_message
+
+
+# --- providers that cannot enforce a schema --------------------------------
+
+
+def test_gemini_asks_for_json_object_not_a_strict_schema(with_settings, monkeypatch):
+    """strict:true is an OpenAI feature. Compat layers accept the field and
+    ignore the enforcement, so output degrades to prose and the fixture
+    fallback hides it. Ask for what the endpoint can actually honour."""
+    with_settings(gemini_api_key="sk-g")
+    seen = {}
+
+    def _capture(url, **kwargs):
+        seen["url"] = url
+        seen.update(kwargs)
+        return _response(_needs_payload(_need()))
+
+    monkeypatch.setattr(httpx, "post", _capture)
+    _rows, source = decompose.decompose("a dinner for twelve", mission_id=MISSION)
+
+    assert source == "gemini"
+    assert "generativelanguage.googleapis.com" in seen["url"]
+    assert seen["json"]["response_format"] == {"type": "json_object"}
+    # json_object guarantees parseable JSON but NOT the shape, so the shape has
+    # to be spelled out in words instead.
+    assert "needs" in seen["json"]["messages"][1]["content"]
+    assert "priority" in seen["json"]["messages"][1]["content"]
+
+
+def test_strict_providers_still_send_the_schema(with_settings, monkeypatch):
+    with_settings(openai_api_key="sk-o")
+    seen = {}
+    monkeypatch.setattr(
+        httpx, "post",
+        lambda url, **kw: (seen.update(kw), _response(_needs_payload(_need())))[1],
+    )
+    decompose.decompose("a goal", mission_id=MISSION)
+    fmt = seen["json"]["response_format"]
+    assert fmt["type"] == "json_schema"
+    assert fmt["json_schema"]["strict"] is True
+
+
+def test_attrs_as_a_plain_object_are_kept(with_settings, monkeypatch):
+    """A non-strict provider returns {"waterproof": true}, not a key/value
+    array. Dropping it would resolve every need on category alone."""
+    with_settings(gemini_api_key="sk-g")
+    payload = _needs_payload(
+        _need(attrs={"waterproof": True, "serves": 12, "warmth": "cold"})
+    )
+    monkeypatch.setattr(httpx, "post", lambda *a, **k: _response(payload))
+    rows, _source = decompose.decompose("a goal", mission_id=MISSION)
+    assert rows[0]["attrs"] == {"waterproof": True, "serves": 12, "warmth": "cold"}
+
+
+def test_a_bare_list_of_needs_is_accepted(with_settings, monkeypatch):
+    """Without schema enforcement the envelope is a coin flip. Throwing away a
+    good decomposition over its wrapper would be a silent downgrade."""
+    with_settings(gemini_api_key="sk-g")
+    monkeypatch.setattr(
+        httpx, "post", lambda *a, **k: _response([_need(label="keep food cold")])
+    )
+    rows, source = decompose.decompose("a goal", mission_id=MISSION)
+    assert source == "gemini"
+    assert [r["label"] for r in rows] == ["keep food cold"]
+
+
+def test_needs_under_an_unexpected_key_are_still_found(with_settings, monkeypatch):
+    with_settings(gemini_api_key="sk-g")
+    monkeypatch.setattr(
+        httpx, "post", lambda *a, **k: _response({"decomposition": [_need()]})
+    )
+    rows, source = decompose.decompose("a goal", mission_id=MISSION)
+    assert source == "gemini"
+    assert len(rows) == 1
+
+
+def test_non_dict_entries_in_the_list_are_skipped(with_settings, monkeypatch):
+    """Nothing validates the items, so a stray string must not crash the route."""
+    with_settings(gemini_api_key="sk-g")
+    monkeypatch.setattr(
+        httpx,
+        "post",
+        lambda *a, **k: _response({"needs": ["just a string", _need(), 42]}),
+    )
+    rows, _source = decompose.decompose("a goal", mission_id=MISSION)
+    assert len(rows) == 1

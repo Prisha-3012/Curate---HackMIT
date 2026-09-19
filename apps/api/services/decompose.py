@@ -17,7 +17,7 @@ from __future__ import annotations
 import json
 import logging
 import uuid
-from typing import Any, Optional
+from typing import Any, NamedTuple, Optional
 
 import httpx
 
@@ -26,18 +26,43 @@ from apps.api.db import repo
 
 log = logging.getLogger(__name__)
 
-#: Both providers speak the OpenAI chat-completions protocol, so one client
-#: covers both. xAI is preferred when both keys are present — see pick_provider.
+#: All three speak the OpenAI chat-completions protocol, so one client covers
+#: them. They differ in how they can be made to return JSON:
+#:
+#:   "schema" — response_format json_schema with strict:true. OpenAI's own
+#:              feature; the API enforces the shape and cannot return prose.
+#:   "object" — response_format json_object. Valid JSON is guaranteed, the
+#:              SHAPE is not, so the schema is spelled out in the prompt and
+#:              the parser below treats every field as untrusted.
+#:
+#: Compat layers routinely ACCEPT strict:true and ignore the enforcement, which
+#: is worse than not supporting it: output silently degrades to prose and the
+#: fixture fallback makes it look like the decomposer is working. So anything
+#: that is not OpenAI itself is "object" until proven otherwise.
 PROVIDERS = {
     "openai": {
         "url": "https://api.openai.com/v1/chat/completions",
         "model": "gpt-4o-mini",
+        "structured": "schema",
     },
     "xai": {
         "url": "https://api.x.ai/v1/chat/completions",
         "model": "grok-3-mini",
+        "structured": "schema",
+    },
+    "gemini": {
+        # Google's OpenAI-compatible endpoint, not the native generateContent API.
+        "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+        #: Model ids move; override with LLM_MODEL if this one is not available
+        #: to your key. A wrong id surfaces as a 404 and falls back to fixture.
+        "model": "gemini-2.0-flash",
+        "structured": "object",
     },
 }
+
+#: auto order. Gemini first because it is the one with a free tier, so it is
+#: the key most likely to actually have credit behind it.
+AUTO_ORDER = ("gemini", "xai", "openai")
 
 MAX_NEEDS = 6
 
@@ -122,10 +147,35 @@ def catalogue_vocabulary() -> tuple[list[str], dict[str, list[str]]]:
     return categories, vocabulary
 
 
+def _coerce(value: Any) -> Any:
+    """Scalar as the resolver needs it. It matches on ==, so "true" must not
+    stay a string where True was meant."""
+    if isinstance(value, bool) or isinstance(value, int):
+        return value
+    text = str(value)
+    low = text.strip().lower()
+    if low in ("true", "false"):
+        return low == "true"
+    if low.isdigit():
+        return int(low)
+    return text
+
+
 def _attrs_to_dict(raw: Any) -> dict[str, Any]:
-    """The schema uses a key/value array because OpenAI strict mode forbids
-    free-form objects. Convert back, coercing the obvious scalar types."""
+    """Model attrs -> a flat dict, whichever shape arrived.
+
+    OpenAI strict mode forbids free-form objects, so the schema asks for an
+    array of {key, value} pairs. A provider in "object" mode is under no such
+    constraint and will usually return a plain {"waterproof": true} object, so
+    both are accepted — the alternative is discarding every attribute from a
+    non-strict provider and silently resolving needs on category alone.
+    """
     out: dict[str, Any] = {}
+    if isinstance(raw, dict):
+        for key, value in raw.items():
+            if isinstance(key, str) and value is not None:
+                out[key] = _coerce(value)
+        return out
     if not isinstance(raw, list):
         return out
     for pair in raw:
@@ -134,25 +184,36 @@ def _attrs_to_dict(raw: Any) -> dict[str, Any]:
         key, value = pair.get("key"), pair.get("value")
         if not isinstance(key, str) or value is None:
             continue
-        text = str(value)
-        low = text.strip().lower()
-        if low in ("true", "false"):
-            out[key] = low == "true"
-        elif low.isdigit():
-            out[key] = int(low)
-        else:
-            out[key] = text
+        out[key] = _coerce(value)
     return out
 
 
-def _to_need_rows(payload: dict[str, Any], mission_id: str) -> list[dict[str, Any]]:
+def _to_need_rows(payload: Any, mission_id: str) -> list[dict[str, Any]]:
     """Model output -> the need-row shape the resolver already consumes.
 
     Deliberately the same dict shape as seed/data/hero_needs.json, so the live
     path and the fixture path feed the resolver identically.
+
+    Every field is treated as untrusted. Under "object" mode nothing enforces
+    the schema, so a bare list instead of {"needs": [...]} is common enough to
+    accept rather than throw away a decomposition over its envelope.
     """
+    if isinstance(payload, list):
+        items = payload
+    elif isinstance(payload, dict):
+        items = payload.get("needs")
+        if not isinstance(items, list):
+            # Some models wrap in a single unexpected key; take the first list.
+            items = next(
+                (v for v in payload.values() if isinstance(v, list)), []
+            )
+    else:
+        items = []
+
     rows: list[dict[str, Any]] = []
-    for item in payload.get("needs", [])[:MAX_NEEDS]:
+    for item in items[:MAX_NEEDS]:
+        if not isinstance(item, dict):
+            continue
         label = (item.get("label") or "").strip()
         category = (item.get("category") or "other").strip().lower()
         if not label:
@@ -171,32 +232,76 @@ def _to_need_rows(payload: dict[str, Any], mission_id: str) -> list[dict[str, An
     return rows
 
 
-def pick_provider() -> Optional[tuple[str, str, str, str]]:
-    """(name, url, model, api_key) for the provider to use, or None.
+class Chosen(NamedTuple):
+    name: str
+    url: str
+    model: str
+    key: str
+    #: "schema" or "object" — see PROVIDERS.
+    structured: str
 
-    'auto' prefers xAI when both keys are present. An explicitly named provider
-    is honoured even if the other key is the one that's set, so a misconfigured
-    LLM_PROVIDER fails visibly rather than silently using the wrong account.
+
+def pick_provider() -> Optional[Chosen]:
+    """The provider to use, or None when no key is configured.
+
+    'auto' walks AUTO_ORDER and takes the first key that is set. An explicitly
+    named provider is honoured even if a different key is the one present, so a
+    misconfigured LLM_PROVIDER fails visibly rather than silently billing the
+    wrong account.
     """
     s = get_settings()
     keys = {
         "openai": (s.openai_api_key or "").strip(),
         "xai": (s.xai_api_key or "").strip(),
+        "gemini": (s.gemini_api_key or "").strip(),
     }
     wanted = (s.llm_provider or "auto").strip().lower()
 
     if wanted in PROVIDERS:
-        order = [wanted]
+        order: tuple[str, ...] = (wanted,)
     else:
         if wanted not in ("", "auto"):
             log.warning("unknown LLM_PROVIDER %r; falling back to auto", wanted)
-        order = ["xai", "openai"]
+        order = AUTO_ORDER
 
     for name in order:
         if keys.get(name):
             cfg = PROVIDERS[name]
-            return name, cfg["url"], s.llm_model or cfg["model"], keys[name]
+            return Chosen(
+                name=name,
+                url=cfg["url"],
+                model=s.llm_model or cfg["model"],
+                key=keys[name],
+                structured=cfg["structured"],
+            )
     return None
+
+
+def _response_format(structured: str) -> dict[str, Any]:
+    if structured == "schema":
+        return {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "need_decomposition",
+                "strict": True,
+                "schema": NEEDS_SCHEMA,
+            },
+        }
+    # json_object guarantees parseable JSON but not the shape, so the shape has
+    # to be asked for in words. _to_need_rows validates whatever comes back.
+    return {"type": "json_object"}
+
+
+#: Appended to the prompt when the API cannot enforce the schema for us.
+SHAPE_INSTRUCTION = """
+Return ONLY a JSON object of exactly this shape, with no commentary:
+
+{{"needs": [{{"label": "...", "rationale": "...", "category": "...",
+  "priority": 1, "attrs": {{"some_key": "some_value"}}}}]}}
+
+Between 2 and {max_needs} entries. `priority` is the integer 1 or 2. `attrs` is
+a flat object of plain string, number or boolean values — never nested.
+"""
 
 
 def decompose(goal_text: str, *, mission_id: str) -> tuple[list[dict[str, Any]], str]:
@@ -209,7 +314,6 @@ def decompose(goal_text: str, *, mission_id: str) -> tuple[list[dict[str, Any]],
     if chosen is None:
         log.info("no LLM api key configured; using fixture needs")
         return repo.hero_needs(), "fixture"
-    provider, url, model, key = chosen
 
     categories, vocabulary = catalogue_vocabulary()
     user_prompt = (
@@ -218,25 +322,20 @@ def decompose(goal_text: str, *, mission_id: str) -> tuple[list[dict[str, Any]],
         f"Known attributes: {json.dumps(vocabulary)}\n\n"
         "Decompose the goal into needs."
     )
+    if chosen.structured != "schema":
+        user_prompt += "\n" + SHAPE_INSTRUCTION.format(max_needs=MAX_NEEDS)
 
     try:
         r = httpx.post(
-            url,
-            headers={"Authorization": f"Bearer {key}"},
+            chosen.url,
+            headers={"Authorization": f"Bearer {chosen.key}"},
             json={
-                "model": model,
+                "model": chosen.model,
                 "messages": [
                     {"role": "system", "content": SYSTEM_PROMPT.format(max_needs=MAX_NEEDS)},
                     {"role": "user", "content": user_prompt},
                 ],
-                "response_format": {
-                    "type": "json_schema",
-                    "json_schema": {
-                        "name": "need_decomposition",
-                        "strict": True,
-                        "schema": NEEDS_SCHEMA,
-                    },
-                },
+                "response_format": _response_format(chosen.structured),
                 "temperature": 0.2,
             },
             timeout=s.llm_timeout_s,
@@ -247,15 +346,16 @@ def decompose(goal_text: str, *, mission_id: str) -> tuple[list[dict[str, Any]],
     except (httpx.HTTPError, KeyError, IndexError, ValueError, TypeError) as exc:
         # Timeout, transport failure, malformed JSON, or a shape we didn't expect.
         log.warning(
-            "decompose via %s failed (%s); falling back to fixture needs",
-            provider, exc,
+            "decompose via %s (%s) failed (%s); falling back to fixture needs",
+            chosen.name, chosen.model, exc,
         )
         return repo.hero_needs(), "fixture"
 
     if not rows:
         log.warning(
-            "%s returned no usable needs; falling back to fixture", provider
+            "%s (%s) returned no usable needs; falling back to fixture",
+            chosen.name, chosen.model,
         )
         return repo.hero_needs(), "fixture"
 
-    return rows, provider
+    return rows, chosen.name
