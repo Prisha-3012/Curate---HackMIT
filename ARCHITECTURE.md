@@ -399,6 +399,33 @@ One person per file. `main.py` is written once in hour 0 and never touched again
 
 Everything below changed after the original Doc was written. Each entry says why.
 
+### 2026-09-19 — POST /api/converse, the spoken front door
+
+`/api/mission` needs a goal and optionally a budget. This gathers them by
+conversation so the whole thing can be done by voice. It never builds a plan
+itself: when `ready` is true the client POSTs `goal_text` and `budget_cents` to
+`/api/mission`, so the typed and spoken paths produce identical plans.
+
+Stateless — the client sends the whole history each turn. No seventh table (§3),
+and no session to expire mid-demo.
+
+Two implementations, and the second is not a consolation prize. Live, a model
+picks each question. Scripted, a fixed ladder asks for the goal then the budget.
+The scripted path is the fallback for every live failure INCLUDING daily quota
+exhaustion, which free tiers reach during rehearsal, and it is what DEMO_MODE
+replays. A conversation degrading to fixed questions is barely noticeable; one
+that errors mid-demo is fatal.
+
+Dialogue runs on a small model (`LLM_DIALOGUE_MODEL`). Measured, a lite model
+answers a turn in ~0.5s where the decomposition model takes 6-9s, and an
+eight-second gap between turns is not a conversation.
+
+The model proposes, the person decides: `budget_cents` is always re-derived from
+what the USER said, never taken from model output, so a hallucinated figure
+cannot become a spending limit. The parser accepts "$80", "80 dollars" and
+"eighty dollars" — an amount understood only in its symbol form would make the
+spoken path quietly worse than the typed one.
+
 ### 2026-09-19 — step 9: voice is real
 
 `/api/voice/transcribe` and `/api/voice/speak` were step-3 stubs: transcribe

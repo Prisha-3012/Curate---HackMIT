@@ -183,6 +183,49 @@ class Plan(Base):
 
 
 # --------------------------------------------------------------------------
+# POST /api/converse  — the spoken front door to POST /api/mission
+# --------------------------------------------------------------------------
+
+
+class ConverseMessage(Base):
+    """One turn. "otto" rather than "assistant" so the wire format does not
+    name a provider's role vocabulary."""
+
+    role: Literal["otto", "user"]
+    content: str
+
+
+class ConverseRequest(Base):
+    """The whole conversation so far. STATELESS ON PURPOSE: the client holds the
+    history, so no seventh table (§3) and no session to expire mid-demo."""
+
+    user_id: str
+    messages: list[ConverseMessage] = Field(default_factory=list, max_length=40)
+
+
+class ConverseReply(Base):
+    """What Otto says next, and what it wants back."""
+
+    #: Spoken aloud and shown on screen. One or two sentences.
+    say: str
+    #: What the UI should offer: free text (mic or keyboard), a short list of
+    #: buttons, or nothing because the conversation is over.
+    expects: Literal["text", "choice", "none"]
+    #: Quick-select answers when expects == "choice". Tapping one is the same as
+    #: saying it, and removes transcription risk from the demo's critical path.
+    choices: list[str] = Field(default_factory=list, max_length=6)
+    #: True when there is enough to build a plan. The client then POSTs
+    #: goal_text and budget_cents to /api/mission.
+    ready: bool = False
+    goal_text: Optional[str] = None
+    #: None means the person never stated one — NOT zero. Same rule as §4.
+    budget_cents: Optional[int] = Field(default=None, ge=0)
+    #: "fixture" means canned dialogue, because no provider was reachable or the
+    #: daily quota is spent. Same meaning as Plan.source.
+    source: Literal["live", "fixture"] = "live"
+
+
+# --------------------------------------------------------------------------
 # POST /api/fitcheck  — A's lane. Defined here so checkout can gate on it.
 # --------------------------------------------------------------------------
 

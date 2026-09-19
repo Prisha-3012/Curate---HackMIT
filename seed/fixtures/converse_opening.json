@@ -1,0 +1,9 @@
+{
+  "say": "Let me see what you already have.",
+  "expects": "none",
+  "choices": [],
+  "ready": true,
+  "goal_text": "business casual for my internship",
+  "budget_cents": 15000,
+  "source": "fixture"
+}

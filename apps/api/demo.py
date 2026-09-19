@@ -31,6 +31,9 @@ _ROUTES: list[tuple[str, re.Pattern[str], str]] = [
     ("POST", re.compile(r"^/api/fitcheck/?$"), fixtures.FITCHECK_RESULT),
     ("POST", re.compile(r"^/api/checkout/?$"), fixtures.CHECKOUT_APPROVED),
     ("POST", re.compile(r"^/api/voice/transcribe/?$"), fixtures.TRANSCRIPT),
+    # One canned turn that is already ready, so demo mode reaches the plan
+    # rather than looping on a conversation the fixture cannot advance.
+    ("POST", re.compile(r"^/api/converse/?$"), fixtures.CONVERSE_OPENING),
 ]
 
 #: Never short-circuited: infrastructure routes that must tell the truth even in

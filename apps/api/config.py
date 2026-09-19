@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     llm_provider: str = "auto"
     #: Overrides the provider's default model id.
     llm_model: Optional[str] = None
+    #: Model for /api/converse turns. Conversation needs latency over depth —
+    #: a lite model answers in ~0.5s where the decomposition model takes 6-9s,
+    #: and an 8-second gap between turns is not a conversation. Falls back to
+    #: the provider default when unset.
+    llm_dialogue_model: Optional[str] = None
     supabase_url: Optional[str] = None
     supabase_key: Optional[str] = None
 
