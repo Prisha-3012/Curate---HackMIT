@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { RotateCcw } from "lucide-react";
 import { EnoughLogo } from "./EnoughLogo";
 import { MissionInput } from "./MissionInput";
@@ -8,119 +8,127 @@ import { SearchProgress } from "./SearchProgress";
 import { OptimizationView } from "./OptimizationView";
 import { EnoughPlan } from "./EnoughPlan";
 import { DemoControls } from "./DemoControls";
-import { enoughService } from "@/lib/services";
-import {
-  calculatePlan,
-  DEMO_INPUT,
-  demoMission,
-  resources,
-  TIMING,
-  searchSources,
-} from "@/lib/demo-data";
-import type { AppStage, Mission, Resource, OptimizedPlan } from "@/lib/types";
+import { getEnoughService } from "@/lib/services";
+import { waitForDemo } from "@/lib/services/mockEnoughService";
+import { TIMING } from "@/lib/demo-data";
+import { defaultFixture, findFixture, fixtures } from "@/lib/fixtures";
+import { candidateResources, comparisonNeed, prepareFixture } from "@/lib/plan";
+import type { AppStage, MissionExperience } from "@/lib/types";
 export function EnoughExperience() {
   const [stage, setStage] = useState<AppStage>("mission");
+  const [fixture, setFixture] = useState(defaultFixture);
   const [input, setInput] = useState("");
-  const [mission, setMission] = useState<Mission | null>(null);
+  const [experience, setExperience] = useState<MissionExperience | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [candidates, setCandidates] = useState<Resource[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [plan, setPlan] = useState<OptimizedPlan | null>(null);
+  const [discovered, setDiscovered] = useState(false);
   const [showControls, setShowControls] = useState(false);
-  const generation = useRef(0);
+  const running = useRef<AbortController | null>(null);
   const mainRef = useRef<HTMLElement>(null);
   useEffect(() => {
-    const lifecycle = generation;
-    setShowControls(
-      new URLSearchParams(window.location.search).get("demoControls") ===
-        "true",
-    );
-    return () => {
-      lifecycle.current++;
-    };
+    const params = new URLSearchParams(window.location.search);
+    setShowControls(params.get("demoControls") === "true");
+    setFixture(findFixture(params.get("fixture")));
+    const lifecycle = running;
+    return () => lifecycle.current?.abort();
   }, []);
   useEffect(() => {
     mainRef.current?.focus({ preventScroll: true });
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [stage]);
+  function beginRun() {
+    running.current?.abort();
+    const controller = new AbortController();
+    running.current = controller;
+    return controller;
+  }
   function reset() {
-    generation.current++;
+    running.current?.abort();
     setStage("mission");
-    setMission(null);
-    setPlan(null);
-    setCandidates([]);
+    setExperience(null);
     setActiveIndex(0);
+    setDiscovered(false);
     setError("");
     setNotice("");
   }
+  function selectFixture(id: string) {
+    reset();
+    setInput("");
+    const next = findFixture(id);
+    setFixture(next);
+    const url = new URL(window.location.href);
+    url.searchParams.set("fixture", next.id);
+    window.history.replaceState(null, "", url);
+  }
   async function submit() {
     if (!input.trim() || stage !== "mission") return;
-    const id = ++generation.current;
+    const run = beginRun();
     setError("");
     setNotice("");
     setStage("understanding");
-    setMission(null);
+    setExperience(null);
     try {
-      const result = await enoughService.understandMission(input.trim());
-      if (id === generation.current) setMission(result);
+      const result = await getEnoughService(fixture).prepareMission(
+        input.trim(),
+        run.signal,
+      );
+      if (!run.signal.aborted) setExperience(result);
     } catch {
-      if (id === generation.current) {
+      if (!run.signal.aborted) {
         setStage("mission");
         setError(
-          "Otto couldn’t understand that mission. Your text is saved; please try again.",
+          "Otto couldn’t prepare that example. Your text is saved; please try again.",
         );
       }
     }
   }
   async function search() {
-    if (!mission) return;
-    const id = ++generation.current;
+    if (!experience) return;
+    const run = beginRun();
     setError("");
     setNotice("");
-    setCandidates([]);
+    setDiscovered(false);
     setActiveIndex(0);
     setStage("searching");
     try {
-      const result = await enoughService.searchResources(mission, []);
-      if (id !== generation.current) return;
-      setCandidates(result);
-      for (let index = 0; index < searchSources.length; index++) {
-        if (id !== generation.current) return;
+      await waitForDemo(TIMING.search, run.signal);
+      setDiscovered(true);
+      for (let index = 0; index < experience.sources.length; index++) {
         setActiveIndex(index);
-        await new Promise((resolve) => setTimeout(resolve, TIMING.source));
+        await waitForDemo(TIMING.source, run.signal);
       }
-      if (id !== generation.current) return;
       setStage("optimizing");
-      const optimized = await enoughService.optimizePlan(mission, result);
-      if (id !== generation.current) return;
-      setPlan(optimized);
+      await waitForDemo(TIMING.optimize, run.signal);
       setStage("plan");
     } catch {
-      if (id === generation.current) {
+      if (!run.signal.aborted) {
         setStage("understanding");
         setError(
-          "The resource search was interrupted. Your mission is saved; try again.",
+          "The example was interrupted. Your mission is saved; try again.",
         );
       }
     }
   }
   function jump(next: AppStage) {
-    generation.current++;
+    running.current?.abort();
     setError("");
     setNotice("");
-    setMission(structuredClone(demoMission));
-    setCandidates(structuredClone(resources));
-    setPlan(calculatePlan(resources));
-    setActiveIndex(2);
+    setExperience(prepareFixture(fixture));
+    setDiscovered(true);
+    setActiveIndex(Math.max(0, Math.min(2, fixture.sources.length - 1)));
     setStage(next);
   }
+  const sources = experience?.sources ?? fixture.sources;
+  const candidates = experience
+    ? candidateResources(experience.mission.needs)
+    : [];
   const stageLabel = {
     mission: "Tell Otto your goal",
-    understanding: mission
+    understanding: experience
       ? "Your mission is understood"
-      : "Understanding your mission",
-    searching: `Exploring ${searchSources[activeIndex].label.toLowerCase()} resources`,
+      : "Preparing your mission",
+    searching: `Exploring ${sources[activeIndex]?.label.toLowerCase() ?? "available"} resources`,
     optimizing: "Finding the best combination",
     plan: "Your ENOUGH plan is ready",
   }[stage];
@@ -130,7 +138,8 @@ export function EnoughExperience() {
         <EnoughLogo />
         <div className="header-right">
           <span className="demo-label">
-            <span /> THE BOSTON DEMO
+            <span />
+            {fixture.badge}
           </span>
           <button className="reset-button" onClick={reset}>
             <RotateCcw size={13} /> Reset demo
@@ -157,47 +166,65 @@ export function EnoughExperience() {
             onChange={setInput}
             onSubmit={submit}
             busy={false}
+            copy={fixture.copy}
+            exampleInput={fixture.mission.rawInput}
             onVoice={() => {
-              setInput(DEMO_INPUT);
+              setInput(fixture.mission.rawInput);
               setNotice(
                 "Simulated voice input added. No microphone was accessed.",
               );
             }}
           />
-        )}{" "}
+        )}
         {stage === "understanding" && (
           <MissionSummary
-            mission={mission}
+            experience={experience}
             onContinue={search}
             onEdit={reset}
           />
-        )}{" "}
+        )}
         {stage === "searching" && (
-          <SearchProgress activeIndex={activeIndex} candidates={candidates} />
-        )}{" "}
-        {stage === "optimizing" && <OptimizationView candidates={candidates} />}{" "}
-        {stage === "plan" && mission && plan && (
-          <EnoughPlan mission={mission} plan={plan} onRestart={reset} />
+          <SearchProgress
+            activeIndex={activeIndex}
+            candidates={discovered ? candidates : []}
+            sources={sources}
+            disclosure={experience?.copy.disclosure ?? fixture.copy.disclosure}
+          />
+        )}
+        {stage === "optimizing" && experience && (
+          <OptimizationView
+            need={comparisonNeed(experience)}
+            candidateCount={candidates.length}
+            criteria={experience.copy.optimizationCriteria}
+          />
+        )}
+        {stage === "plan" && experience && (
+          <EnoughPlan experience={experience} onRestart={reset} />
         )}
       </main>
-      {showControls && <DemoControls stage={stage} onJump={jump} />}
+      {showControls && (
+        <DemoControls
+          stage={stage}
+          onJump={jump}
+          fixtures={fixtures}
+          fixtureId={fixture.id}
+          onFixture={selectFixture}
+        />
+      )}
       <footer className="site-footer">
         <span>
           Use what exists. <strong>Buy what matters.</strong>
         </span>
         <div
           className="footer-ladder"
-          aria-label="Resource priority: own, circle, used, rent, new"
+          aria-label={`Resource priority: ${sources.map((source) => source.label.toLowerCase()).join(", ")}`}
         >
-          <span>OWN</span>
-          <i>→</i>
-          <span>CIRCLE</span>
-          <i>→</i>
-          <span>USED</span>
-          <i>→</i>
-          <span>RENT</span>
-          <i>→</i>
-          <span>NEW</span>
+          {sources.map((source, index) => (
+            <Fragment key={source.id}>
+              {index > 0 && <i aria-hidden="true">→</i>}
+              <span>{source.label}</span>
+            </Fragment>
+          ))}
         </div>
       </footer>
     </div>

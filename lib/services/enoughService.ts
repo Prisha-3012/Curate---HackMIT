@@ -1,6 +1,7 @@
-import type { Mission, Resource, OptimizedPlan } from "../types";
+import type { MissionExperience } from "../types";
 export interface EnoughService {
-  understandMission(input: string): Promise<Mission>;
-  searchResources(mission: Mission, inventory: Resource[]): Promise<Resource[]>;
-  optimizePlan(mission: Mission, resources: Resource[]): Promise<OptimizedPlan>;
+  prepareMission(
+    input: string,
+    signal?: AbortSignal,
+  ): Promise<MissionExperience>;
 }

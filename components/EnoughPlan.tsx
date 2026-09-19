@@ -1,122 +1,132 @@
-import {
-  BedDouble,
-  BookOpen,
-  LampDesk,
-  CookingPot,
-  Brush,
-  Archive,
-  Check,
-  MapPin,
-  ArrowUpRight,
-} from "lucide-react";
-import type { Mission, OptimizedPlan } from "@/lib/types";
-import { money } from "@/lib/demo-data";
+import { Check, CircleHelp, ArrowUpRight, Shapes } from "lucide-react";
+import type { MissionExperience } from "@/lib/types";
+import { money } from "@/lib/formatting";
+import { groupNeeds } from "@/lib/plan";
 import { OttoAgent } from "./OttoAgent";
-import { ResourceSourceBadge } from "./ResourceSourceBadge";
+import { ResourceCard } from "./ResourceCard";
 import { SavingsReveal } from "./SavingsReveal";
-const needIcons = {
-  sleep: BedDouble,
-  study: BookOpen,
-  lighting: LampDesk,
-  cooking: CookingPot,
-  cleaning: Brush,
-  storage: Archive,
-};
 export function EnoughPlan({
-  mission,
-  plan,
+  experience,
   onRestart,
 }: {
-  mission: Mission;
-  plan: OptimizedPlan;
+  experience: MissionExperience;
   onRestart: () => void;
 }) {
+  const { mission, plan, copy } = experience;
+  const groups = groupNeeds(mission.needs);
+  const partial = plan.unmetNeedIds.length > 0;
+  const empty = plan.totalNeeds === 0;
+  const overBudget = plan.totalCost > mission.budget;
+  const complete = !partial && !empty && !overBudget;
   const metrics = [
     { value: plan.newPurchasesAvoided, label: "new purchases avoided" },
-    { value: plan.reusedResources, label: "existing resources reused" },
-    { value: plan.nearbyResources, label: "finds within one mile" },
+    { value: plan.reusedResources, label: "owned, borrowed or shared" },
+    ...(plan.nearbyResources !== undefined
+      ? [{ value: plan.nearbyResources, label: "finds within one mile" }]
+      : []),
   ];
   return (
     <section className="plan-screen enter">
       <div className="plan-intro">
         <div>
           <span className="eyebrow">
-            <Check size={13} /> YOUR MISSION, MADE POSSIBLE
+            {complete ? <Check size={13} /> : <CircleHelp size={13} />}{" "}
+            {complete
+              ? "YOUR MISSION, MADE POSSIBLE"
+              : overBudget && !partial
+                ? "MATCHED, BUT ABOVE BUDGET"
+                : "A PLAN WITH ROOM TO COMPLETE"}
           </span>
           <h1>
             Here’s your <em>ENOUGH</em> plan.
           </h1>
-          <p className="lead">Everything you need. Less of what you don’t.</p>
+          <p className="lead">
+            {complete
+              ? "Everything you need. Less of what you don’t."
+              : empty
+                ? "Add needs to start putting your plan together."
+                : !partial && overBudget
+                  ? "All needs matched. This combination is above your budget."
+                  : `${plan.items.length} of ${plan.totalNeeds} needs matched. Let’s keep the rest in view.`}
+          </p>
         </div>
         <div className="plan-mission-stamp">
-          <span>{mission.location}</span>
+          {mission.location && <span>{mission.location}</span>}
           <span>
-            {mission.duration} · {money(mission.budget)} budget
+            {mission.duration ? `${mission.duration} · ` : ""}
+            {money(mission.budget)} budget
           </span>
         </div>
       </div>
       <div className="plan-layout">
         <div className="plan-resources">
           <div className="plan-section-heading">
-            <span className="eyebrow">A ROOM, RESOURCEFULLY PUT TOGETHER</span>
+            <span className="eyebrow">{copy.planCollectionLabel}</span>
             <span>
-              {plan.items.length} resources · {mission.needs.length} needs
+              {plan.items.length} resources · {groups.length}{" "}
+              {groups.length === 1 ? "need group" : "need groups"}
             </span>
           </div>
           <div className="need-cards">
-            {mission.needs.map((need, index) => {
-              const Icon =
-                needIcons[need.id as keyof typeof needIcons] || Archive;
-              const items = plan.items.filter((i) => i.needId === need.id);
-              return (
-                <article
-                  className={`need-card need-${need.id} enter`}
-                  key={need.id}
-                  style={{ animationDelay: `${index * 65}ms` }}
-                >
-                  <div className="need-card-heading">
-                    <Icon size={18} strokeWidth={1.5} />
-                    <h2>{need.label}</h2>
-                    <span>0{index + 1}</span>
-                  </div>
-                  {items.map(({ resource, reasoning }) => (
-                    <div className="plan-item" key={resource.id}>
-                      <div className="plan-item-line">
-                        <h3>{resource.name}</h3>
-                        <strong>{money(resource.price)}</strong>
-                      </div>
-                      <div className="plan-item-meta">
-                        <ResourceSourceBadge source={resource.source} />
-                        {resource.distanceMiles !== undefined ? (
-                          <span>
-                            <MapPin size={10} />
-                            {resource.distanceMiles} mi
-                          </span>
-                        ) : resource.ownerName ? (
-                          <span>{resource.ownerName}</span>
-                        ) : null}
-                      </div>
-                      <p>{reasoning}</p>
+            {groups.map((group, index) => (
+              <article
+                className="need-card enter"
+                key={group.id}
+                style={{ animationDelay: `${index * 65}ms` }}
+              >
+                <div className="need-card-heading">
+                  <Shapes size={18} strokeWidth={1.5} />
+                  <h2>{group.label}</h2>
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                </div>
+                {group.needs.map((need) => {
+                  const item = plan.items.find(
+                    (item) => item.needId === need.id,
+                  );
+                  return item ? (
+                    <ResourceCard
+                      key={need.id}
+                      resource={item.resource}
+                      needLabel={need.label}
+                      explanation={item.reasoning}
+                    />
+                  ) : (
+                    <div className="unmet-need" key={need.id}>
+                      <span className="unmet-label">
+                        <CircleHelp size={13} /> STILL NEEDED
+                      </span>
+                      {group.needs.length > 1 && <h3>{need.label}</h3>}
+                      <p>{need.unmetReason}</p>
+                      {need.rationale && (
+                        <p className="unmet-rationale">{need.rationale}</p>
+                      )}
                     </div>
-                  ))}
-                </article>
-              );
-            })}
+                  );
+                })}
+              </article>
+            ))}
           </div>
           <div className="plan-agent-note">
-            <OttoAgent state="success" compact />
+            <OttoAgent state={complete ? "success" : "idle"} compact />
             <p>
               <strong>
-                Buy new where it matters. Use what exists for the rest.
+                {complete
+                  ? "Buy new where it matters. Use what exists for the rest."
+                  : overBudget && !partial
+                    ? "The resources fit. The budget still needs work."
+                    : "A useful start. The unmatched needs still matter."}
               </strong>
-              <br />A new mattress for a fresh start. Existing resources for the
-              rest.
+              <br />
+              {copy.planNote}
             </p>
           </div>
         </div>
         <SavingsReveal plan={plan} mission={mission} />
       </div>
-      <div className="impact-strip">
+      <div
+        className="impact-strip"
+        style={{ gridTemplateColumns: `1.1fr repeat(${metrics.length}, 1fr)` }}
+      >
         <span className="impact-label">
           LESS BUYING.
           <br />
@@ -131,11 +141,14 @@ export function EnoughPlan({
       </div>
       <div className="plan-end">
         <p>
-          <span className="completion-dot" /> Your room, figured out.
-          <span className="plan-end-detail">
-            {" "}
-            A little intention goes a long way.
-          </span>
+          <span className="completion-dot" />
+          {complete
+            ? copy.completion
+            : empty
+              ? "Your next mission starts with a need."
+              : !partial && overBudget
+                ? "Matched resources. Budget still to resolve."
+                : `${plan.unmetNeedIds.length} ${plan.unmetNeedIds.length === 1 ? "need still needs" : "needs still need"} a match.`}
         </p>
         <button className="text-button" onClick={onRestart}>
           Try the mission again <ArrowUpRight size={14} />

@@ -1,17 +1,18 @@
 import { ArrowRight, Check, MapPin, Wallet, CalendarDays } from "lucide-react";
-import type { Mission } from "@/lib/types";
-import { money } from "@/lib/demo-data";
+import type { MissionExperience } from "@/lib/types";
+import { money } from "@/lib/formatting";
+import { groupNeeds } from "@/lib/plan";
 import { OttoAgent } from "./OttoAgent";
 export function MissionSummary({
-  mission,
+  experience,
   onContinue,
   onEdit,
 }: {
-  mission: Mission | null;
+  experience: MissionExperience | null;
   onContinue: () => void;
   onEdit: () => void;
 }) {
-  if (!mission)
+  if (!experience)
     return (
       <section className="loading-understanding enter">
         <OttoAgent state="thinking" />
@@ -27,14 +28,13 @@ export function MissionSummary({
         </div>
       </section>
     );
+  const { mission, copy } = experience;
   return (
     <section className="understanding-screen enter">
       <div className="section-intro">
         <span className="eyebrow">01 / YOUR MISSION, UNDERSTOOD</span>
         <h1>{mission.title}</h1>
-        <p className="lead">
-          A temporary home. Everything you need to settle in.
-        </p>
+        <p className="lead">{copy.summary}</p>
       </div>
       <div className="understanding-layout">
         <div className="mission-brief">
@@ -49,34 +49,47 @@ export function MissionSummary({
               <span>Budget</span>
               <strong>{money(mission.budget)}</strong>
             </div>
-            <div>
-              <CalendarDays size={18} />
-              <span>Duration</span>
-              <strong>{mission.duration}</strong>
-            </div>
-            <div>
-              <MapPin size={18} />
-              <span>Location</span>
-              <strong>{mission.location}</strong>
-            </div>
+            {mission.duration && (
+              <div>
+                <CalendarDays size={18} />
+                <span>Duration</span>
+                <strong>{mission.duration}</strong>
+              </div>
+            )}
+            {mission.location && (
+              <div>
+                <MapPin size={18} />
+                <span>Location</span>
+                <strong>{mission.location}</strong>
+              </div>
+            )}
           </div>
-          <div className="priorities">
-            {mission.preferences.map((p) => (
-              <span key={p.id}>{p.label}</span>
-            ))}
-          </div>
+          {!!mission.preferences?.length && (
+            <div className="priorities">
+              {mission.preferences.map((p) => (
+                <span key={p.id}>{p.label}</span>
+              ))}
+            </div>
+          )}
         </div>
         <div className="needs-section">
           <span className="eyebrow">WHAT YOU ACTUALLY NEED</span>
           <div className="needs-list">
-            {mission.needs.map((need, index) => (
+            {groupNeeds(mission.needs).map((group, index) => (
               <div
                 className="need-row enter"
                 style={{ animationDelay: `${index * 110}ms` }}
-                key={need.id}
+                key={group.id}
               >
-                <span className="need-number">0{index + 1}</span>
-                <span>{need.label}</span>
+                <span className="need-number">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <div>
+                  <span>{group.label}</span>
+                  {group.needs.length === 1 && group.needs[0].rationale && (
+                    <p className="need-rationale">{group.needs[0].rationale}</p>
+                  )}
+                </div>
                 <Check size={15} />
               </div>
             ))}
@@ -101,9 +114,7 @@ export function MissionSummary({
           </button>
         </div>
       </div>
-      <p className="demo-note">
-        Demo understanding uses the Boston / $500 / 3-month fixture.
-      </p>
+      <p className="demo-note">{copy.disclosure}</p>
     </section>
   );
 }

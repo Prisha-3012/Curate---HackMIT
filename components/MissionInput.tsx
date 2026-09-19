@@ -1,5 +1,5 @@
 import { ArrowUpRight, CornerDownLeft, Mic, MoveUpRight } from "lucide-react";
-import { DEMO_INPUT } from "@/lib/demo-data";
+import type { ExperienceCopy } from "@/lib/types";
 import { OttoAgent } from "./OttoAgent";
 export function MissionInput({
   input,
@@ -7,7 +7,11 @@ export function MissionInput({
   onSubmit,
   busy,
   onVoice,
+  copy,
+  exampleInput,
 }: {
+  copy: ExperienceCopy;
+  exampleInput: string;
   input: string;
   onChange: (v: string) => void;
   onSubmit: () => void;
@@ -42,7 +46,7 @@ export function MissionInput({
           id="mission"
           value={input}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="I’m moving to Boston for 3 months. I have $500 and basically nothing…"
+          placeholder={copy.placeholder}
           maxLength={2000}
           required
           onKeyDown={(e) => {
@@ -77,8 +81,8 @@ export function MissionInput({
       </form>
       <div className="example-row">
         <span>Try a mission</span>
-        <button onClick={() => onChange(DEMO_INPUT)}>
-          Set up my room under $500 <MoveUpRight size={13} />
+        <button onClick={() => onChange(exampleInput)}>
+          {copy.exampleLabel} <MoveUpRight size={13} />
         </button>
       </div>
       <div className="mission-promise">
@@ -89,9 +93,7 @@ export function MissionInput({
           <span>Buying new comes last.</span>
         </p>
       </div>
-      <p className="demo-note">
-        INTERACTIVE DEMO · Boston room setup · All resources are simulated
-      </p>
+      <p className="demo-note">{copy.disclosure}</p>
     </section>
   );
 }

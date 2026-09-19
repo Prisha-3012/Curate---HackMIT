@@ -1,6 +1,10 @@
 import { DEMO_MODE } from "../demo-data";
-import { mockEnoughService } from "./mockEnoughService";
-import { createEnoughApi } from "./enoughApi";
-export const enoughService = DEMO_MODE
-  ? mockEnoughService
-  : createEnoughApi("/api");
+import type { DemoFixture } from "../types";
+import { createMockEnoughService } from "./mockEnoughService";
+export function getEnoughService(fixture: DemoFixture) {
+  if (!DEMO_MODE)
+    throw new Error(
+      "Backend integration is not enabled. Use DEMO_MODE for local fixtures.",
+    );
+  return createMockEnoughService(fixture);
+}

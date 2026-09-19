@@ -1,28 +1,22 @@
-import {
-  Check,
-  ArrowDown,
-  Package,
-  Users,
-  MapPin,
-  Clock3,
-  Plus,
-  ArrowDownRight,
-} from "lucide-react";
-import type { Resource } from "@/lib/types";
-import { searchSources, money } from "@/lib/demo-data";
+import { Check, ArrowDown, Package, ArrowDownRight } from "lucide-react";
+import type { Resource, SearchSource } from "@/lib/types";
 import { OttoAgent } from "./OttoAgent";
-const icons = [Package, Users, MapPin, Clock3, Plus];
+import { ResourceCard } from "./ResourceCard";
 export function SearchProgress({
   activeIndex,
   candidates,
+  sources,
+  disclosure,
 }: {
   activeIndex: number;
   candidates: Resource[];
+  sources: SearchSource[];
+  disclosure: string;
 }) {
-  const visible = candidates.filter((r) =>
-    searchSources
+  const visible = candidates.filter((resource) =>
+    sources
       .slice(0, activeIndex + 1)
-      .some((s) => s.sources.includes(r.source)),
+      .some((source) => source.sources.includes(resource.source)),
   );
   return (
     <section className="search-screen enter">
@@ -40,12 +34,11 @@ export function SearchProgress({
           className="resolution-ladder"
           aria-label="Resource search hierarchy"
         >
-          {searchSources.map((source, index) => {
-            const Icon = icons[index];
+          {sources.map((source, index) => {
             const done = index < activeIndex;
             const active = index === activeIndex;
-            const matches = candidates.filter((r) =>
-              source.sources.includes(r.source),
+            const matches = candidates.filter((resource) =>
+              source.sources.includes(resource.source),
             );
             return (
               <li
@@ -55,9 +48,15 @@ export function SearchProgress({
               >
                 <div className="ladder-rail">
                   <span className="ladder-icon">
-                    {done ? <Check size={19} /> : <Icon size={19} />}
+                    {done ? (
+                      <Check size={19} />
+                    ) : (
+                      <span className="rung-number">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                    )}
                   </span>
-                  {index < searchSources.length - 1 && (
+                  {index < sources.length - 1 && (
                     <span className="rail-line">
                       <ArrowDown size={13} />
                     </span>
@@ -71,14 +70,14 @@ export function SearchProgress({
                         ? `${matches.length} ${matches.length === 1 ? "match" : "matches"}`
                         : active
                           ? "EXPLORING"
-                          : index === 4
+                          : source.sources.includes("new")
                             ? "ONLY IF NEEDED"
-                            : `0${index + 1}`}
+                            : "UP NEXT"}
                     </small>
                   </div>
                   <p>
                     {done
-                      ? `${source.checked} resources checked · ${matches.length} useful ${matches.length === 1 ? "possibility" : "possibilities"}`
+                      ? `${source.checked !== undefined ? `${source.checked} resources checked · ` : ""}${matches.length} ${matches.length === 1 ? "option" : "options"} in the resource pool`
                       : source.subtitle}
                   </p>
                 </div>
@@ -92,49 +91,35 @@ export function SearchProgress({
             <span className="eyebrow">YOUR GROWING RESOURCE POOL</span>
             <span>{visible.length.toString().padStart(2, "0")}</span>
           </div>
-          <div className="pool-cards" aria-live="polite" aria-atomic="true">
+          <div className="pool-cards">
             {visible.length === 0 ? (
               <div className="pool-empty">
                 <Package size={28} />
-                <p>Starting with what you already have.</p>
+                <p>No options revealed here yet.</p>
               </div>
             ) : (
-              visible.slice(-6).map((resource) => (
-                <div className="pool-card enter" key={resource.id}>
-                  <span className="pool-dot" />
-                  <div>
-                    <strong>{resource.name}</strong>
-                    <span>
-                      {resource.source === "owned"
-                        ? "Already yours"
-                        : resource.ownerName ||
-                          (resource.distanceMiles !== undefined
-                            ? `${resource.distanceMiles} mi away`
-                            : resource.source === "rent"
-                              ? "Short-term rental"
-                              : "Available new")}
-                    </span>
-                  </div>
-                  <span>
-                    {resource.price === 0 ? "Free" : money(resource.price)}
-                  </span>
-                </div>
-              ))
+              visible
+                .slice(-6)
+                .map((resource) => (
+                  <ResourceCard
+                    key={resource.id}
+                    resource={resource}
+                    variant="scouting"
+                  />
+                ))
             )}
           </div>
           <div className="pool-footnote">
             <ArrowDownRight size={19} />
             <p>
-              One goal. Every source considered.
+              One goal. Different ways to meet it.
               <br />
-              <span>Otto is building a solution, piece by piece.</span>
+              <span>Otto is putting the possibilities together.</span>
             </p>
           </div>
         </div>
       </div>
-      <p className="demo-note">
-        Simulated inventory, circle, and listings · No external searches
-      </p>
+      <p className="demo-note">{disclosure}</p>
     </section>
   );
 }

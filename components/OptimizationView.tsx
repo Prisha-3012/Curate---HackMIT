@@ -1,12 +1,18 @@
-import { Check, ArrowDown, MapPin } from "lucide-react";
-import type { Resource } from "@/lib/types";
-import { money } from "@/lib/demo-data";
+import { ArrowDown, CircleHelp } from "lucide-react";
+import type { Need } from "@/lib/types";
+import { selectedOption } from "@/lib/plan";
 import { OttoAgent } from "./OttoAgent";
-import { ResourceSourceBadge } from "./ResourceSourceBadge";
-export function OptimizationView({ candidates }: { candidates: Resource[] }) {
-  const desks = candidates.filter(
-    (r) => r.category === "study" && r.id !== "chair",
-  );
+import { ResourceCard } from "./ResourceCard";
+export function OptimizationView({
+  need,
+  candidateCount,
+  criteria,
+}: {
+  need?: Need;
+  candidateCount: number;
+  criteria?: string;
+}) {
+  const chosen = need && selectedOption(need);
   return (
     <section className="optimization-screen enter">
       <div className="optimization-intro">
@@ -18,47 +24,46 @@ export function OptimizationView({ candidates }: { candidates: Resource[] }) {
           <em>combination.</em>
         </h1>
         <p className="lead">
-          {candidates.length} possibilities. One plan that makes sense for you.
+          {candidateCount}{" "}
+          {candidateCount === 1 ? "possibility" : "possibilities"}. Each need
+          deserves a thoughtful match.
         </p>
       </div>
       <div className="optimization-example">
-        <div className="optimization-label">
-          <span className="eyebrow">A CLOSER LOOK: YOUR STUDY SPACE</span>
-          <span>Cost + distance + 3-month fit</span>
-        </div>
-        <div className="candidate-grid">
-          {desks.map((resource) => (
-            <div
-              key={resource.id}
-              className={`candidate ${resource.id === "desk" ? "candidate-selected" : ""}`}
-            >
-              <ResourceSourceBadge source={resource.source} />
-              <h3>{resource.name}</h3>
-              <strong>{money(resource.price)}</strong>
-              <span className="candidate-detail">
-                {resource.distanceMiles !== undefined ? (
-                  <>
-                    <MapPin size={12} />
-                    {resource.distanceMiles} miles away
-                  </>
-                ) : (
-                  resource.description
-                )}
-              </span>
-              {resource.id === "desk" && (
-                <span className="selected-mark">
-                  <Check size={12} /> BEST FIT
-                </span>
-              )}
+        {need && (
+          <div className="optimization-label">
+            <span className="eyebrow">A CLOSER LOOK: {need.label}</span>
+            {criteria && <span>{criteria}</span>}
+          </div>
+        )}
+        {need?.options.length ? (
+          <>
+            <div className="candidate-grid">
+              {need.options.map((resource) => (
+                <ResourceCard
+                  key={resource.id}
+                  resource={resource}
+                  needLabel={need.label}
+                  variant="candidate"
+                  recommended={need.recommendedOptionId === resource.id}
+                  selected={need.selectedOptionId === resource.id}
+                />
+              ))}
             </div>
-          ))}
-        </div>
-        <ArrowDown size={22} className="optimization-arrow" />
-        <p className="selection-reason">
-          Close enough to collect. Affordable enough to keep.
-          <br />
-          <span>And easy to pass on when summer ends.</span>
-        </p>
+            <ArrowDown size={22} className="optimization-arrow" />
+            <p className="selection-reason">
+              {chosen?.id === need.recommendedOptionId
+                ? (need.recommendationReason ?? chosen?.description)
+                : chosen?.description}
+            </p>
+          </>
+        ) : (
+          <div className="unmet-comparison">
+            <CircleHelp size={24} />
+            <p>{need?.unmetReason ?? "No needs have been provided yet."}</p>
+            <span>An unmatched need stays in the plan.</span>
+          </div>
+        )}
       </div>
     </section>
   );
