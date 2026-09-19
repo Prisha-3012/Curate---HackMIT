@@ -291,3 +291,29 @@ test("nullable budgets remain distinct and Plan.source is authoritative", async 
     globalThis.fetch = original;
   }
 });
+
+test("budget parser accepts punctuation without truncating malformed amounts", () => {
+  for (const [input, cents] of [
+    [
+      "I need business casual clothes for my internship. My budget is $100.",
+      10000,
+    ],
+    ["My budget is $100, including accessories.", 10000],
+    ["Budget: $100!", 10000],
+    ["Budget: ($100).", 10000],
+    ["Budget: $100.50.", 10050],
+    ["Budget: $1,000.50.", 100050],
+    ["Budget: $0.", 0],
+  ] as const)
+    expect(parseBudgetCents(input)).toBe(cents);
+  expect(parseBudgetCents("No budget stated.")).toBeNull();
+  for (const input of [
+    "$100.123",
+    "$1,00",
+    "$1,000.123",
+    "$100,50",
+    "$-100",
+    "$100 or $200",
+  ])
+    expect(() => parseBudgetCents(input)).toThrow();
+});

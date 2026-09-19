@@ -7,7 +7,7 @@ import type { EnoughService } from "./enoughService";
 export function parseBudgetCents(input: string): number | null {
   const matches = [
     ...input.matchAll(
-      /\$\s*((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?)(?![\d.,])/g,
+      /\$\s*((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?)(?!\d|[.,]\d)/g,
     ),
   ];
   if (!input.includes("$")) return null;

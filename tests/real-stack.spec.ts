@@ -132,3 +132,54 @@ for (const budget of [null, 15000, 3000, 0]) {
     });
   });
 }
+
+test("real backend: sentence-ending budget reaches the API and renders its plan", async ({
+  page,
+  request,
+}) => {
+  const health = await (
+    await request.get("http://127.0.0.1:8000/health")
+  ).json();
+  expect(health.demo_mode).toBe("off");
+  const input =
+    "I need business casual clothes for my internship. My budget is $100.";
+  const missionRequests: unknown[] = [];
+  page.on("request", (r) => {
+    if (r.method() === "POST" && new URL(r.url()).pathname === "/api/mission")
+      missionRequests.push(r.postDataJSON());
+  });
+  await page.goto("/");
+  await page.getByLabel("Your mission", { exact: true }).fill(input);
+  const responsePromise = page.waitForResponse(
+    (r) =>
+      r.request().method() === "POST" &&
+      r.url() === "http://127.0.0.1:8000/api/mission",
+  );
+  await page.getByRole("button", { name: "Let Otto figure it out" }).click();
+  await expect(page.locator(".error-banner")).toHaveCount(0);
+  const response = await responsePromise;
+  expect(response.ok()).toBe(true);
+  const plan = validatePlan(await response.json());
+  expect(plan.budget_cents).toBe(10000);
+  await page.getByRole("button", { name: "Find a better way" }).click();
+  await expect(page.locator(".plan-screen")).toBeVisible({ timeout: 15000 });
+  await expect(page.locator(".enough-price .sr-only")).toHaveText(
+    money(plan.impact.plan_cents / 100),
+  );
+  const recommendedIds = plan.needs.flatMap((n) =>
+    n.recommended_listing_id === null ? [] : [n.recommended_listing_id],
+  );
+  expect(
+    await page
+      .locator(".plan-item")
+      .evaluateAll((nodes) =>
+        nodes.map((n) => n.getAttribute("data-resource-id")),
+      ),
+  ).toEqual(recommendedIds);
+  await expect(page.locator(".error-banner")).toHaveCount(0);
+  expect(missionRequests).toHaveLength(1);
+  expect(missionRequests[0]).toMatchObject({
+    goal_text: input,
+    budget_cents: 10000,
+  });
+});
