@@ -1,0 +1,18 @@
+{
+  "measurement_id": "c3d9e1f2-7a4b-4c8d-9e50-1f2a3b4c5d6e",
+  "measurements": {
+    "chest_cm": { "value": 98.2, "range": [94.1, 102.3] },
+    "shoulder_cm": { "value": 44.0, "range": [42.5, 45.5] },
+    "waist_cm": { "value": 82.5, "range": [77.0, 88.0] }
+  },
+  "confidence": 0.72,
+  "confidence_band": "MEDIUM",
+  "confidence_reason": "Both shoulders clearly visible. Slight body rotation reduced waist precision.",
+  "recommendation": {
+    "brand": "Uniqlo",
+    "size_label": "M",
+    "alternate_size": "L",
+    "note": "M fits your chest; size up to L if you prefer a looser fit.",
+    "return_risk": "low"
+  }
+}

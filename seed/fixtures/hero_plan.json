@@ -1,0 +1,126 @@
+{
+  "mission_id": "b1f0c2a4-3d5e-4f60-9a71-2c8d4e6f0a13",
+  "goal_text": "business casual for my internship",
+  "budget_cents": 15000,
+  "needs": [
+    {
+      "need_id": "7a2e1b90-4c6d-4e81-8f03-5b9a7c2d1e40",
+      "label": "a pair of non-sneaker shoes",
+      "rationale": "Most business-casual dress codes rule out athletic sneakers, and shoes are the first thing people notice in an office.",
+      "priority": 1,
+      "options": [
+        {
+          "listing_id": "1c4d7e20-8a9b-4c3d-9e51-6f2a8b0c4d71",
+          "rung": "OWN",
+          "title": "Brown leather oxfords",
+          "owner_label": "you",
+          "price_cents": 0,
+          "retail_cents": 9000,
+          "image_url": "/seed/images/oxfords.jpg",
+          "match_score": 0.91,
+          "why": "You already own these. They match the formality this goal needs.",
+          "needs_fitcheck": false
+        },
+        {
+          "listing_id": "2d5e8f31-9b0c-4d4e-8f62-7a3b9c1d5e82",
+          "rung": "USED",
+          "title": "Cole Haan loafers, size 9",
+          "owner_label": "Poshmark seller",
+          "price_cents": 4200,
+          "retail_cents": 16000,
+          "image_url": "/seed/images/cole-haan-loafers.jpg",
+          "match_score": 0.78,
+          "why": "Secondhand, 74% below retail.",
+          "needs_fitcheck": false
+        }
+      ],
+      "recommended_listing_id": "1c4d7e20-8a9b-4c3d-9e51-6f2a8b0c4d71"
+    },
+    {
+      "need_id": "8b3f2c01-5d7e-4f92-9a14-6c0b8d3e2f51",
+      "label": "two collared shirts you can rotate",
+      "rationale": "Two shirts cover a five-day week with one wash, which is the smallest number that actually works.",
+      "priority": 1,
+      "options": [
+        {
+          "listing_id": "3e6f9a42-0c1d-4e5f-9a73-8b4c0d2e6f93",
+          "rung": "BORROW",
+          "title": "Light blue oxford shirt, M",
+          "owner_label": "Maya, your roommate",
+          "price_cents": 0,
+          "retail_cents": 6800,
+          "image_url": "/seed/images/oxford-shirt-blue.jpg",
+          "match_score": 0.83,
+          "why": "Maya has two and offered one for the summer. Costs nothing and needs no sizing gamble.",
+          "needs_fitcheck": false
+        },
+        {
+          "listing_id": "4f70ab53-1d2e-4f60-8b84-9c5d1e3f70a4",
+          "rung": "USED",
+          "title": "J.Crew cotton oxford, M",
+          "owner_label": "Goodwill Cambridge",
+          "price_cents": 2600,
+          "retail_cents": 9800,
+          "image_url": "/seed/images/jcrew-oxford.jpg",
+          "match_score": 0.86,
+          "why": "Same shirt as new for a quarter of the price, in excellent condition.",
+          "needs_fitcheck": true
+        },
+        {
+          "listing_id": "5081bc64-2e3f-4a71-9c95-0d6e2f4081b5",
+          "rung": "NEW",
+          "title": "Uniqlo easy-care oxford, M",
+          "owner_label": "Uniqlo",
+          "price_cents": 3990,
+          "retail_cents": 3990,
+          "image_url": "/seed/images/uniqlo-oxford.jpg",
+          "match_score": 0.88,
+          "why": "Buy new only if the borrowed and secondhand shirts don't fit.",
+          "needs_fitcheck": true
+        }
+      ],
+      "recommended_listing_id": "3e6f9a42-0c1d-4e5f-9a73-8b4c0d2e6f93"
+    },
+    {
+      "need_id": "9c4a3d12-6e8f-40a3-8b25-7d1c9e4f3a62",
+      "label": "one layer for over-air-conditioned offices",
+      "rationale": "Offices run cold year-round, and a layer is what makes the same two shirts read as deliberate rather than repeated.",
+      "priority": 2,
+      "options": [
+        {
+          "listing_id": "6192cd75-3f40-4b82-8da6-1e7f305092c6",
+          "rung": "USED",
+          "title": "Navy wool-blend blazer, 38R",
+          "owner_label": "The RealReal",
+          "price_cents": 5500,
+          "retail_cents": 22000,
+          "image_url": "/seed/images/navy-blazer.jpg",
+          "match_score": 0.87,
+          "why": "A blazer is the single highest-leverage business-casual item, and used wool outlasts new synthetic.",
+          "needs_fitcheck": false
+        },
+        {
+          "listing_id": "72a3de86-4051-4c93-9eb7-2f80416193d7",
+          "rung": "NEW",
+          "title": "Banana Republic knit blazer, M",
+          "owner_label": "Banana Republic",
+          "price_cents": 12000,
+          "retail_cents": 12000,
+          "image_url": "/seed/images/br-knit-blazer.jpg",
+          "match_score": 0.84,
+          "why": "Machine-washable, but twice the price of the secondhand wool option.",
+          "needs_fitcheck": false
+        }
+      ],
+      "recommended_listing_id": "6192cd75-3f40-4b82-8da6-1e7f305092c6"
+    }
+  ],
+  "impact": {
+    "baseline_cents": 37800,
+    "plan_cents": 5500,
+    "saved_cents": 32300,
+    "items_reused": 3,
+    "textile_kg_avoided": 9.4,
+    "assumptions_note": "Estimates. See seed/impact_constants.json for sources."
+  }
+}
