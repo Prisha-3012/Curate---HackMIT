@@ -7,6 +7,7 @@ export function MissionInput({
   onSubmit,
   busy,
   onVoice,
+  onTalk,
   voiceState = "simulated",
   copy,
   exampleInput,
@@ -18,6 +19,8 @@ export function MissionInput({
   onSubmit: () => void;
   busy: boolean;
   onVoice?: () => void;
+  /** Starts a spoken conversation. Absent offline, which has no backend. */
+  onTalk?: () => void;
   /** "simulated" keeps the offline demo's original wording. */
   voiceState?: "simulated" | "idle" | "recording" | "transcribing";
 }) {
@@ -92,6 +95,14 @@ export function MissionInput({
           </button>
         </div>
       </form>
+      {onTalk && (
+        <div className="example-row">
+          <span>Rather talk?</span>
+          <button onClick={onTalk}>
+            Talk to Otto <Mic size={13} />
+          </button>
+        </div>
+      )}
       <div className="example-row">
         <span>Try a mission</span>
         <button onClick={() => onChange(exampleInput)}>

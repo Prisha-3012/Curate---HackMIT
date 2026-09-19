@@ -1914,3 +1914,64 @@ select:focus-visible {
     gap: 7px;
   }
 }
+
+/* --- spoken conversation (OttoConversation) ------------------------------ */
+
+.conversation-log {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 46vh;
+  overflow-y: auto;
+  padding: 22px 0;
+  margin-bottom: 8px;
+}
+
+.conversation-log .turn {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: 62ch;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.conversation-log .turn-user {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+  text-align: right;
+  opacity: 0.72;
+}
+
+.conversation-answer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.conversation-answer .mission-composer textarea {
+  min-height: 0;
+}
+
+/* Recording is the one state worth showing at a glance. */
+.voice-button.voice-recording {
+  animation: voice-pulse 1.3s ease-in-out infinite;
+}
+
+.voice-button.voice-transcribing {
+  opacity: 0.55;
+}
+
+/* Pulses the ring, NOT the element's size. A transform-based pulse moves the
+   bounding box forever, which means the button is never "stable" — it hangs
+   automated clicks and makes it a moving target for anyone with a tremor or
+   using switch control. */
+@keyframes voice-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
+  50% { box-shadow: 0 0 0 5px transparent; opacity: 0.72; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .voice-button.voice-recording { animation: none; outline: 2px solid currentColor; }
+  .conversation-log { scroll-behavior: auto; }
+}

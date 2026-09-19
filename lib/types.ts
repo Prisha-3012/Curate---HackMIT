@@ -1,5 +1,10 @@
 export type AppStage =
-  "mission" | "understanding" | "searching" | "optimizing" | "plan";
+  | "mission"
+  | "conversation"
+  | "understanding"
+  | "searching"
+  | "optimizing"
+  | "plan";
 export type OttoState =
   | "idle"
   | "thinking"

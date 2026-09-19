@@ -25,10 +25,18 @@ export function useVoiceCapture({
   const recorder = useRef<MediaRecorder | null>(null);
   const chunks = useRef<BlobPart[]>([]);
 
-  const supported =
-    typeof window !== "undefined" &&
-    typeof window.MediaRecorder !== "undefined" &&
-    !!navigator.mediaDevices?.getUserMedia;
+  // Resolved AFTER mount, not during render. Reading `window` while rendering
+  // makes the server say "unsupported" and the client say "supported", so the
+  // mic button exists in one tree and not the other and React reports a
+  // hydration mismatch. Starting false means both renders agree, and the
+  // button appears a frame later.
+  const [supported, setSupported] = useState(false);
+  useEffect(() => {
+    setSupported(
+      typeof window.MediaRecorder !== "undefined" &&
+        !!navigator.mediaDevices?.getUserMedia,
+    );
+  }, []);
 
   // Release the mic if the component goes away mid-recording, otherwise the
   // browser keeps showing the recording indicator.
