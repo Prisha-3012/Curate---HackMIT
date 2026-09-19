@@ -48,7 +48,10 @@ def _probe_llm(name: str, key: str) -> tuple[str, str]:
 
     try:
         payload = r.json()
-        detail = str(payload.get("error", payload))
+        # Gemini returns errors as a LIST, not an object, so .get() is not safe.
+        if isinstance(payload, dict):
+            payload = payload.get("error", payload)
+        detail = str(payload)
     except ValueError:
         detail = r.text
     hint = ""

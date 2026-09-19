@@ -432,3 +432,57 @@ def test_non_dict_entries_in_the_list_are_skipped(with_settings, monkeypatch):
     )
     rows, _source = decompose.decompose("a goal", mission_id=MISSION)
     assert len(rows) == 1
+
+
+def test_a_5xx_is_retried_once(with_settings, monkeypatch):
+    """Gemini load-sheds with 503s. Without a retry a goal randomly comes back
+    in the seeded wardrobe needs, which reads as a broken decomposer."""
+    with_settings(gemini_api_key="sk-g")
+    calls = []
+
+    def _flaky(url, **kwargs):
+        calls.append(url)
+        if len(calls) == 1:
+            return httpx.Response(
+                503, json={"error": "overloaded"},
+                request=httpx.Request("POST", url),
+            )
+        return _response(_needs_payload(_need()))
+
+    monkeypatch.setattr(httpx, "post", _flaky)
+    rows, source = decompose.decompose("a goal", mission_id=MISSION)
+    assert len(calls) == 2, "the 503 should have been retried"
+    assert source == "gemini"
+    assert rows
+
+
+def test_a_4xx_is_not_retried(with_settings, monkeypatch):
+    """A bad key or a dead model id will not fix itself, and retrying only
+    doubles the wait before the fixture fallback."""
+    with_settings(gemini_api_key="sk-g")
+    calls = []
+
+    def _denied(url, **kwargs):
+        calls.append(url)
+        return httpx.Response(403, json={"error": "nope"},
+                              request=httpx.Request("POST", url))
+
+    monkeypatch.setattr(httpx, "post", _denied)
+    _rows, source = decompose.decompose("a goal", mission_id=MISSION)
+    assert len(calls) == 1, "a 4xx must not be retried"
+    assert source == "fixture"
+
+
+def test_a_persistent_5xx_gives_up_after_one_retry(with_settings, monkeypatch):
+    with_settings(gemini_api_key="sk-g")
+    calls = []
+
+    def _down(url, **kwargs):
+        calls.append(url)
+        return httpx.Response(503, json={"error": "still down"},
+                              request=httpx.Request("POST", url))
+
+    monkeypatch.setattr(httpx, "post", _down)
+    _rows, source = decompose.decompose("a goal", mission_id=MISSION)
+    assert len(calls) == 2
+    assert source == "fixture"

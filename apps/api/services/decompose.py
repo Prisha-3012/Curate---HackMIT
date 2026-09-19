@@ -53,9 +53,11 @@ PROVIDERS = {
     "gemini": {
         # Google's OpenAI-compatible endpoint, not the native generateContent API.
         "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-        #: Model ids move; override with LLM_MODEL if this one is not available
-        #: to your key. A wrong id surfaces as a 404 and falls back to fixture.
-        "model": "gemini-2.0-flash",
+        #: Model ids move — gemini-2.0-flash was retired and the API itself
+        #: named this as the replacement. Override with LLM_MODEL when it ages
+        #: out too; a wrong id surfaces as a 404 in preflight, and at runtime
+        #: falls back to fixture needs.
+        "model": "gemini-3.6-flash",
         "structured": "object",
     },
 }
@@ -325,21 +327,31 @@ def decompose(goal_text: str, *, mission_id: str) -> tuple[list[dict[str, Any]],
     if chosen.structured != "schema":
         user_prompt += "\n" + SHAPE_INSTRUCTION.format(max_needs=MAX_NEEDS)
 
+    body = {
+        "model": chosen.model,
+        "messages": [
+            {"role": "system", "content": SYSTEM_PROMPT.format(max_needs=MAX_NEEDS)},
+            {"role": "user", "content": user_prompt},
+        ],
+        "response_format": _response_format(chosen.structured),
+        "temperature": 0.2,
+    }
+    headers = {"Authorization": f"Bearer {chosen.key}"}
+
     try:
-        r = httpx.post(
-            chosen.url,
-            headers={"Authorization": f"Bearer {chosen.key}"},
-            json={
-                "model": chosen.model,
-                "messages": [
-                    {"role": "system", "content": SYSTEM_PROMPT.format(max_needs=MAX_NEEDS)},
-                    {"role": "user", "content": user_prompt},
-                ],
-                "response_format": _response_format(chosen.structured),
-                "temperature": 0.2,
-            },
-            timeout=s.llm_timeout_s,
-        )
+        # Gemini load-sheds with a 503 often enough to matter: roughly one call
+        # in three during testing. Without a retry that surfaces as a goal
+        # randomly coming back in the seeded wardrobe needs, which reads as "the
+        # decomposer is broken" rather than "the provider was busy". One retry
+        # only, and only for 5xx — a 4xx is a real problem (bad key, dead model)
+        # and repeating it just doubles the wait before the fixture fallback.
+        for attempt in (1, 2):
+            r = httpx.post(chosen.url, headers=headers, json=body, timeout=s.llm_timeout_s)
+            if r.status_code < 500 or attempt == 2:
+                break
+            log.info(
+                "%s returned %s; retrying once", chosen.name, r.status_code
+            )
         r.raise_for_status()
         content = r.json()["choices"][0]["message"]["content"]
         rows = _to_need_rows(json.loads(content), mission_id)
