@@ -123,3 +123,38 @@ def get_plan_json(mission_id: str) -> Optional[dict[str, Any]]:
     if not rows:
         return None
     return rows[0].get("plan_json")
+
+
+def save_purchase(
+    *,
+    purchase_id: str,
+    user_id: str,
+    listing_id: str,
+    measurement_id: Optional[str],
+    size_bought: Optional[str],
+    amount_cents: int,
+    txn_id: str,
+) -> bool:
+    """Record a completed purchase. False if the DB is unavailable.
+
+    Never raises: a successful charge must not 500 because the write failed.
+    The money moved either way, and the txn_id is in the response and the logs.
+    """
+    try:
+        client.upsert(
+            "purchases",
+            [
+                {
+                    "id": purchase_id,
+                    "user_id": user_id,
+                    "listing_id": listing_id,
+                    "measurement_id": measurement_id,
+                    "size_bought": size_bought,
+                    "amount_cents": amount_cents,
+                    "txn_id": txn_id,
+                }
+            ],
+        )
+        return True
+    except client.DBUnavailable:
+        return False

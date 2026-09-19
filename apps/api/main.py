@@ -10,6 +10,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from apps.api.config import get_settings
+from apps.api.db import repo
+from apps.api.services import payments
 from apps.api.demo import DemoModeMiddleware
 from apps.api.routers import checkout, mission, voice
 
@@ -63,4 +65,6 @@ def health() -> dict:
             "cybersource": bool(s.cybersource_merchant_id and s.cybersource_secret_key),
             "deepgram": bool(s.deepgram_api_key),
         },
+        "payment_rails": payments.rail_status(),
+        "data_source": repo.source(),
     }
