@@ -256,8 +256,8 @@ A need with no candidate anywhere on the ladder **stays in the plan**:
 ```
 
 - `recommended_listing_id` is **nullable**. Anything rendering it must handle null.
-- `unmet_reason` is set **only** when `options` is empty, and is null otherwise.
-- A need is either met (options **and** a recommendation) or unmet (neither, **plus** a reason). Half-states are a bug, not something to render.
+- `unmet_reason` is set **exactly** when `recommended_listing_id` is null, and is null otherwise. It is keyed on the recommendation, not on `options`.
+- A need is met (a recommendation, which is one of its own options) or unmet (no recommendation, **plus** a reason). An unmet need **may still carry options**: budget enforcement (§4, planner) drops a need to unmet while keeping what it found, because "three exist, none affordable" is different information from "nothing matched". Consumers branch on `unmet_reason`, never on `len(options)`.
 - **Impact counts only met needs.** Dropping unmet needs instead would shrink the plan silently *and* flatter the impact number, since a need contributing nothing to `plan_cents` would also stop contributing to `baseline_cents`. The impact number must never overstate what the user achieved.
 
 ### POST /api/fitcheck

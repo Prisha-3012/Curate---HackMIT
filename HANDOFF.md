@@ -226,11 +226,27 @@ impact number. It arrives like this:
 }
 ```
 
-The invariant, enforced server-side by a validator, is that a need is **either**
-met (`options` non-empty **and** a recommendation) **or** unmet (`options: []`,
-`recommended_listing_id: null`, **and** a non-empty `unmet_reason`). There is no
-third state, so you only need two render paths. `unmet_reason` is written to be
-shown to the user directly.
+The invariant, enforced server-side by a validator, keys on the
+**recommendation**, not on `options`:
+
+```
+recommended_listing_id != null  ->  it is one of this need's options, no reason
+recommended_listing_id == null  ->  unmet_reason is set; options MAY be non-empty
+```
+
+So there are **three** states, not two. **Branch on `unmet_reason`, never on
+`options.length`:**
+
+| State | Signal | Render |
+| :- | :- | :- |
+| Met | `recommended_listing_id` non-null | Normal card, highlight the recommendation |
+| Unmet — nothing matched | `unmet_reason` set, `options: []` | Reason as the card body, no list |
+| Unmet — unaffordable | `unmet_reason` set, `options` non-empty | Reason as the card body, **still list the options**, none recommended |
+
+The third state is what budget enforcement produces: the options are kept on
+purpose, because "three exist, none within your budget" is materially different
+information from "nothing matched", and collapsing them would make the plan less
+truthful. `unmet_reason` is written to be shown to the user directly.
 
 ### Empty `options` arrays are legal
 
@@ -316,9 +332,11 @@ body of the card. Do not render an empty option list, a spinner, or an error —
 this is a successful response describing a real outcome. The need still has a
 `label`, `rationale` and `priority` worth showing.
 
-**2. `recommended_listing_id` is null.** Always paired with `options: []`. Any
-code doing `options.find(o => o.listing_id === need.recommended_listing_id)`
-must null-check the id first or it will throw on unmet needs.
+**2. `recommended_listing_id` is null.** **Not** always paired with
+`options: []` — a need dropped for affordability keeps its options. Any code
+doing `options.find(o => o.listing_id === need.recommended_listing_id)` must
+null-check the id first or it will throw on unmet needs, and any code treating
+a null recommendation as "nothing to show" will silently discard real options.
 
 **3. An option with `needs_fitcheck: true`.** This option **cannot be checked
 out** until FitCheck has produced a `measurement_id` for the user. The CTA should
