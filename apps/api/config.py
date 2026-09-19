@@ -35,11 +35,14 @@ class Settings(BaseSettings):
     #: Sandbox by default; production is api.cybersource.com.
     cybersource_environment: str = "apitest.cybersource.com"
 
+    stripe_secret_key: Optional[str] = None
+
     deepgram_api_key: Optional[str] = None
 
     #: §6: the one live call keeps a 4s timeout and falls back to the fixture.
     openai_timeout_s: float = 4.0
     cybersource_timeout_s: float = 8.0
+    stripe_timeout_s: float = 8.0
     deepgram_timeout_s: float = 6.0
 
     @property

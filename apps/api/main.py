@@ -25,11 +25,20 @@ app = FastAPI(
     ),
 )
 
-# Hackathon: the frontend runs on whatever port it lands on.
+#: C's Next.js dev server. Explicit origins rather than "*" because the wildcard
+#: is incompatible with allow_credentials, and cookies/auth headers are cheaper to
+#: allow now than to debug mid-demo.
+ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:3001",  # Next falls back to 3001 when 3000 is taken
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=r"https://.*\.vercel\.app",  # preview deploys
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["X-Demo-Fixture"],
