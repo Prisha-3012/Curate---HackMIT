@@ -15,6 +15,7 @@ Object.assign(
 );
 const plan = (): Plan => ({
   mission_id: "mission",
+  source: "live",
   goal_text: "Host dinner",
   budget_cents: 2000,
   needs: [
@@ -90,10 +91,11 @@ test("fully solved: ordered options, earlier BORROW wins, explicit conversion an
   expect(e.plan.nearbyResources).toBeUndefined();
   expect(e.plan.reuseLabel).toContain("including used");
   expect(render(p)).toContain("YOUR MISSION, MADE POSSIBLE");
-  expect(e.provenance).toBe("backend-unverified");
-  expect(adaptBackendPlan(p, "original", "hero").provenance).toBe(
-    "backend-demo",
-  );
+  expect(e.provenance).toBe("backend-live");
+  expect(
+    adaptBackendPlan({ ...p, source: "fixture" }, "original", "hero")
+      .provenance,
+  ).toBe("backend-demo");
   expect(p).toEqual(plan());
 });
 test("partial plan preserves empty and budget-unmet candidates without selection or costing", () => {
@@ -145,7 +147,7 @@ test("all unmet and explicit zero budget retain intent without invalid savings",
   expect(parseBudgetCents("A dinner for $0")).toBe(0);
   expect(render(p)).toContain("0 of 1 needs matched");
   expect(render(p)).not.toMatch(/NaN|Infinity|role="meter"/);
-  expect(() => parseBudgetCents("dinner")).toThrow();
+  expect(parseBudgetCents("dinner")).toBeNull();
   expect(() => parseBudgetCents("$10 or $20")).toThrow();
 });
 test("runtime validation rejects malformed fields and broken recommendation invariants", () => {
@@ -178,7 +180,7 @@ test("service sends exactly one POST with zero cents, validates and identifies d
   globalThis.fetch = async (url, init) => {
     expect(url).toBe("http://backend/api/mission");
     requests.push(init!);
-    return new Response(JSON.stringify(plan()), {
+    return new Response(JSON.stringify({ ...plan(), source: "fixture" }), {
       headers: { "X-Demo-Fixture": "hero" },
     });
   };
@@ -241,6 +243,50 @@ test("service cancellation and timeout reject without fixture fallback", async (
         controller.signal,
       ),
     ).rejects.toMatchObject({ name: "AbortError" });
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+
+test("nullable budgets remain distinct and Plan.source is authoritative", async () => {
+  const p = plan();
+  p.budget_cents = null;
+  const experience = adaptBackendPlan(
+    validatePlan(p),
+    "no cap",
+    "stale-header",
+  );
+  expect(experience.mission.budget).toBeNull();
+  expect(experience.provenance).toBe("backend-live");
+  expect(experience.backendFixture).toBeUndefined();
+  expect(render(p)).toContain("No budget stated");
+  expect(render(p)).not.toMatch(/NaN|Infinity|role="meter"|under your/);
+  expect(
+    adaptBackendPlan({ ...p, source: "fixture" }, "different goal").provenance,
+  ).toBe("backend-demo");
+  expect(render({ ...p, source: "fixture" })).not.toContain(
+    "YOUR MISSION, MADE POSSIBLE",
+  );
+  expect(parseBudgetCents("business casual for my internship")).toBeNull();
+  expect(parseBudgetCents("business casual for $150")).toBe(15000);
+  expect(parseBudgetCents("business casual for $30")).toBe(3000);
+  expect(parseBudgetCents("business casual for $0")).toBe(0);
+  for (const source of [undefined, null, "unknown"])
+    expect(() => validatePlan({ ...p, source })).toThrow();
+  expect(() => validatePlan({ ...p, budget_cents: undefined })).toThrow();
+  const original = globalThis.fetch;
+  globalThis.fetch = async (_url, init) => {
+    expect(JSON.parse(init!.body as string).budget_cents).toBeNull();
+    return new Response(JSON.stringify(p));
+  };
+  try {
+    expect(
+      (
+        await createEnoughApi("http://backend/api", "user").prepareMission(
+          "no stated budget",
+        )
+      ).mission.budget,
+    ).toBeNull();
   } finally {
     globalThis.fetch = original;
   }

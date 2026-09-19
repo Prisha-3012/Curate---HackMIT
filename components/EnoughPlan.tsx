@@ -16,7 +16,8 @@ export function EnoughPlan({
   const groups = groupNeeds(mission.needs);
   const partial = plan.unmetNeedIds.length > 0;
   const empty = plan.totalNeeds === 0;
-  const overBudget = plan.totalCost > mission.budget;
+  const overBudget = mission.budget !== null && plan.totalCost > mission.budget;
+  const backendFixture = experience.provenance === "backend-demo";
   const complete = !partial && !empty && !overBudget;
   const metrics = [
     { value: plan.newPurchasesAvoided, label: "new purchases avoided" },
@@ -37,30 +38,36 @@ export function EnoughPlan({
         <div>
           <span className="eyebrow">
             {complete ? <Check size={13} /> : <CircleHelp size={13} />}{" "}
-            {complete
-              ? "YOUR MISSION, MADE POSSIBLE"
-              : overBudget && !partial
-                ? "MATCHED, BUT ABOVE BUDGET"
-                : "A PLAN WITH ROOM TO COMPLETE"}
+            {backendFixture
+              ? "BACKEND SAMPLE PLAN"
+              : complete
+                ? "YOUR MISSION, MADE POSSIBLE"
+                : overBudget && !partial
+                  ? "MATCHED, BUT ABOVE BUDGET"
+                  : "A PLAN WITH ROOM TO COMPLETE"}
           </span>
           <h1>
             Here’s your <em>ENOUGH</em> plan.
           </h1>
           <p className="lead">
-            {complete
-              ? "Everything you need. Less of what you don’t."
-              : empty
-                ? "Add needs to start putting your plan together."
-                : !partial && overBudget
-                  ? "All needs matched. This combination is above your budget."
-                  : `${plan.items.length} of ${plan.totalNeeds} needs matched. Let’s keep the rest in view.`}
+            {backendFixture
+              ? `${plan.items.length} of ${plan.totalNeeds} sample needs matched. This fixture does not establish that your goal was solved.`
+              : complete
+                ? "Everything you need. Less of what you don’t."
+                : empty
+                  ? "Add needs to start putting your plan together."
+                  : !partial && overBudget
+                    ? "All needs matched. This combination is above your budget."
+                    : `${plan.items.length} of ${plan.totalNeeds} needs matched. Let’s keep the rest in view.`}
           </p>
         </div>
         <div className="plan-mission-stamp">
           {mission.location && <span>{mission.location}</span>}
           <span>
             {mission.duration ? `${mission.duration} · ` : ""}
-            {money(mission.budget)} budget
+            {mission.budget === null
+              ? "No budget stated"
+              : `${money(mission.budget)} budget`}
           </span>
         </div>
       </div>

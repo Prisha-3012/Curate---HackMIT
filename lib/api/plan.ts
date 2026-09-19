@@ -77,15 +77,17 @@ export interface PlanImpact {
 export interface Plan {
   mission_id: string;
   goal_text: string;
-  budget_cents: number;
+  budget_cents: number | null;
   needs: PlanNeed[];
   impact: PlanImpact;
+  /** Authoritative origin; fixture needs may not describe the requested goal. */
+  source: "live" | "fixture";
 }
 
 export interface MissionRequest {
   user_id: string;
   goal_text: string;
-  budget_cents: number;
+  budget_cents: number | null;
 }
 
 /** True when the need is unmet for any reason. */

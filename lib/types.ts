@@ -59,7 +59,8 @@ export interface Mission {
   id?: string;
   rawInput: string;
   title: string;
-  budget: number;
+  /** null means no budget stated; zero is a real constraint. */
+  budget: number | null;
   duration?: string;
   location?: string;
   needs: Need[];
@@ -118,8 +119,7 @@ export interface MissionExperience {
   copy: ExperienceCopy;
   plan: OptimizedPlan;
   optimizationNeedId?: string;
-  provenance:
-    "local-fixture" | "backend-unverified" | "backend-live" | "backend-demo";
+  provenance: "local-fixture" | "backend-live" | "backend-demo";
   backendFixture?: string;
 }
 export interface UserFeedback {

@@ -19,7 +19,8 @@ export function validatePlan(value: unknown): Plan {
   const p = object(value);
   string(p.mission_id);
   string(p.goal_text);
-  cents(p.budget_cents);
+  if (p.budget_cents !== null) cents(p.budget_cents);
+  if (p.source !== "live" && p.source !== "fixture") fail();
   if (!Array.isArray(p.needs)) fail();
   const needIds = new Set();
   for (const raw of p.needs) {

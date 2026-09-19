@@ -3,14 +3,15 @@ import { validatePlan } from "../api/validatePlan";
 import type { MissionRequest } from "../api/plan";
 import type { EnoughService } from "./enoughService";
 
-/** Require one explicit dollar budget; never silently impose a default cap. */
-export function parseBudgetCents(input: string): number {
+/** No dollar budget means null; an explicit $0 remains zero. Never infer a cap. */
+export function parseBudgetCents(input: string): number | null {
   const matches = [
     ...input.matchAll(
       /\$\s*((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?)(?![\d.,])/g,
     ),
   ];
-  if (matches.length !== 1)
+  if (!input.includes("$")) return null;
+  if (matches.length !== 1 || (input.match(/\$/g)?.length ?? 0) !== 1)
     throw new Error(
       "Include one explicit budget, such as $100 or $0, in your mission.",
     );

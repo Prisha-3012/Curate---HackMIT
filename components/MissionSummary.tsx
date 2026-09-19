@@ -47,7 +47,9 @@ export function MissionSummary({
             <div>
               <Wallet size={18} />
               <span>Budget</span>
-              <strong>{money(mission.budget)}</strong>
+              <strong>
+                {mission.budget === null ? "Not stated" : money(mission.budget)}
+              </strong>
             </div>
             {mission.duration && (
               <div>

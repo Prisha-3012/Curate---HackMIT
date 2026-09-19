@@ -11,6 +11,7 @@ test("single backend response drives every stage and preserves budget-unmet cand
     await route.fulfill({
       json: {
         mission_id: "dinner",
+        source: "fixture",
         goal_text: "Host dinner",
         budget_cents: 0,
         needs: [
@@ -55,7 +56,9 @@ test("single backend response drives every stage and preserves budget-unmet cand
   await expect(
     page.getByRole("heading", { name: "Host dinner" }),
   ).toBeVisible();
-  await expect(page.locator(".demo-note")).toContainText("origin unverified");
+  await expect(page.locator(".demo-note")).toContainText(
+    "Backend fixture/demo data",
+  );
   await page.getByRole("button", { name: "Find a better way" }).click();
   await expect(page.locator(".ladder-title>span")).toHaveText([
     "OWN",
@@ -67,7 +70,7 @@ test("single backend response drives every stage and preserves budget-unmet cand
     page.getByRole("heading", { name: "Here’s your ENOUGH plan." }),
   ).toBeVisible({ timeout: 15000 });
   await expect(page.locator(".plan-intro")).toContainText(
-    "0 of 1 needs matched",
+    "0 of 1 sample needs matched",
   );
   await expect(page.locator(".unmet-need")).toContainText(
     "Available but outside the budget",

@@ -37,15 +37,18 @@ export function SavingsReveal({
   plan: OptimizedPlan;
   mission: Mission;
 }) {
-  const remaining = Math.round((mission.budget - plan.totalCost) * 100) / 100;
+  const remaining =
+    mission.budget === null
+      ? null
+      : Math.round((mission.budget - plan.totalCost) * 100) / 100;
   const percentage =
     plan.retailEquivalent > 0
       ? Math.round((plan.savings / plan.retailEquivalent) * 100)
       : null;
   const incomplete = plan.unmetNeedIds.length > 0 || plan.totalNeeds === 0;
-  const overBudget = remaining < 0;
+  const overBudget = remaining !== null && remaining < 0;
   const usage =
-    mission.budget > 0
+    mission.budget !== null && mission.budget > 0
       ? Math.min((plan.totalCost / mission.budget) * 100, 100)
       : 0;
   return (
@@ -93,20 +96,24 @@ export function SavingsReveal({
           </span>
         )}
       </div>
-      <div className={`budget-status ${overBudget ? "budget-over" : ""}`}>
-        {overBudget || incomplete ? (
-          <CircleHelp size={14} />
-        ) : (
-          <Check size={14} />
-        )}
-        <span>
-          {remaining === 0
-            ? `At your ${money(mission.budget)} budget`
-            : `${money(Math.abs(remaining))} ${overBudget ? "above" : "under"} your ${money(mission.budget)} budget`}
-          {incomplete ? " so far" : ""}
-        </span>
-      </div>
-      {mission.budget > 0 && (
+      {remaining !== null && mission.budget !== null ? (
+        <div className={`budget-status ${overBudget ? "budget-over" : ""}`}>
+          {overBudget || incomplete ? (
+            <CircleHelp size={14} />
+          ) : (
+            <Check size={14} />
+          )}
+          <span>
+            {remaining === 0
+              ? `At your ${money(mission.budget)} budget`
+              : `${money(Math.abs(remaining))} ${overBudget ? "above" : "under"} your ${money(mission.budget)} budget`}
+            {incomplete ? " so far" : ""}
+          </span>
+        </div>
+      ) : (
+        <p className="budget-status">No budget stated</p>
+      )}
+      {mission.budget !== null && mission.budget > 0 && (
         <div
           className="budget-track"
           role="meter"

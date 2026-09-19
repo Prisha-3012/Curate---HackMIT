@@ -45,7 +45,7 @@ Preparation takes 900 ms. After confirmation, scouting begins with 1,000 ms foll
 
 ## Current scope
 
-Frontend-only local fixture rendering. No live backend request/proxy, inventory scanning, checkout, FitCheck flow, actual voice, authentication, ownership graph, or marketplace scraping. The Boston fixture remains the default.
+Offline fixtures are the default; the backend adapter is opt-in. No inventory scanning, checkout, FitCheck flow, actual voice, authentication, ownership graph, or marketplace scraping is implemented.
 
 Next.js's PostCSS dependency is overridden to the compatible patched 8.5 series; keep the override until Next.js updates its own dependency.
 
@@ -55,9 +55,9 @@ Offline Boston/camping fixtures remain the default and make no API requests.
 Copy `.env.example` to `.env.local`, configure the public API base URL (including
 `/api`) and seeded user ID, and set `NEXT_PUBLIC_DEMO_MODE=false` to opt into the
 backend service. Restart/rebuild Next after changing public environment variables.
-No credentials belong in `NEXT_PUBLIC_*` values. Live requests require exactly
-one explicit dollar budget in the mission text (including `$0`); no default cap
-is inferred. The service sends one `POST /api/mission`, validates its response,
+No credentials belong in `NEXT_PUBLIC_*` values. A mission without a dollar budget sends `budget_cents: null`. An explicit `$0`
+sends zero; other dollar amounts are converted to cents. Ambiguous or malformed
+dollar amounts are rejected rather than silently replaced. No default cap is inferred. The service sends one `POST /api/mission`, validates its response,
 and adapts it to `MissionExperience`. Subsequent screens reveal that result with
 local timing, without further requests. Failures remain errors; there is no
 silent local fixture fallback.
@@ -68,22 +68,26 @@ invariants. `adaptBackendPlan` preserves ordered needs/options, authoritative
 backend impact and unmet candidates. Backend reuse counts include USED and have
 a distinct label. Absent metadata stays absent. Fixture accounting is separate.
 
-**Backend blockers before calling this a verified live experience:**
+**Budget and provenance contract (backend `f756319`):**
 
-- `budget_cents: 0` currently bypasses backend budget enforcement. The frontend
-  sends explicit zero unchanged and displays the returned budget/cost honestly;
-  the backend must agree on zero versus an unspecified/unlimited budget.
-- The mission handler can return a wardrobe fixture after a planner failure with
-  HTTP 200 and no marker. Unmarked responses are therefore `backend-unverified`,
-  never confidently live. `X-Demo-Fixture` responses are `backend-demo` and name
-  the fixture. `backend-live` is reserved in the view model but is never assigned
-  until a reliable backend provenance contract exists. Goal-text heuristics are
-  not a substitute for that contract.
+- Both request and Plan budget are nullable: `null` means unstated/unconstrained,
+  while `0` is a real zero-dollar cap. The UI shows “No budget stated” without a
+  budget meter for null. Zero remains an explicit budget.
+- `Plan.source` is required at the frontend wire boundary and must be `live` or
+  `fixture`. It determines `backend-live` versus `backend-demo`; local fixtures
+  retain `local-fixture`. Missing/unknown sources fail validation rather than
+  being presumed live. `X-Demo-Fixture` can name a fixture, but never overrides
+  the body source. The backend schema defaults source to live internally; actual
+  serialized responses supply it explicitly.
+- A backend fixture is clearly labeled as seeded sample data, with no claim that
+  an arbitrary requested goal was solved. When decomposition lacks working LLM
+  credentials/credits, seeded wardrobe needs and source=fixture are expected.
+  Genuine arbitrary-mission testing requires a working backend LLM provider.
 - Direct browser requests require backend CORS to allow the frontend origin.
   The configured user ID is a development identity, not authentication.
 
 FitCheck flags are informational only. No checkout, payment, auth, or FitCheck
-flow is implemented. Backend service tests mock HTTP; they do not call live APIs.
+flow is implemented. Default backend service tests mock HTTP. The opt-in real-stack suite calls the actual local API.
 
 Validation: `npm run test:e2e` builds and starts a fresh production server on
 port 3000 for offline fixtures and adapter/service tests.
@@ -91,3 +95,13 @@ port 3000 for offline fixtures and adapter/service tests.
 and tests the browser flow on port 3002 with intercepted HTTP (no live backend).
 Run these suites sequentially because both use Next's `.next` output; run the
 offline suite last to restore the default demo build. Both ports must be free.
+
+Real-stack validation: run `DEMO_MODE=off uv run uvicorn apps.api.main:app --reload --port 8000`
+from an isolated checkout of the backend branch, configure the ignored `.env.local`
+from `.env.example` with `NEXT_PUBLIC_DEMO_MODE=false`, then run
+`npx playwright test --config=playwright.real-stack.config.ts`. This builds and
+runs the frontend on port 3000 and sends actual browser requests for the internship
+goal with null, $150, $30, and $0 budgets. It expects seeded fixture provenance
+while no funded LLM provider is available. Requests/responses are attached to test
+results and screenshots are saved in `/tmp`. It does not intercept HTTP or alter
+backend code. Run suites sequentially; default tests explicitly force offline mode.

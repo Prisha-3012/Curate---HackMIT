@@ -147,7 +147,7 @@ export function EnoughExperience() {
               ? fixture.badge
               : experience?.provenance === "backend-demo"
                 ? "Backend demo fixture"
-                : "Backend · origin unverified"}
+                : "Backend"}
           </span>
           <button className="reset-button" onClick={reset}>
             <RotateCcw size={13} /> {DEMO_MODE ? "Reset demo" : "New mission"}

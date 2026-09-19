@@ -21,8 +21,8 @@ export const backendSources: SearchSource[] = Object.entries(sourceByRung).map(
   }),
 );
 export const backendCopy: ExperienceCopy = {
-  exampleLabel: "A goal with an explicit budget",
-  placeholder: "Describe your goal and include your budget, for example $100…",
+  exampleLabel: "A goal to get started",
+  placeholder: "Describe your goal. Add a dollar budget if you have one…",
   disclosure:
     "One plan request. The following stages reveal the returned plan.",
   summary: "Review the needs returned for your goal.",
@@ -70,22 +70,35 @@ export function adaptBackendPlan(
       ? [{ needId: need.id, resource, reasoning: resource.description }]
       : [];
   });
-  const disclosure = backendFixture
-    ? `Backend demo fixture: ${backendFixture}. This is a staged reveal of fixture data.`
-    : "Backend response · origin unverified. The backend may substitute a demo fixture without identifying it. These stages reveal the returned plan.";
+  const isFixture = plan.source === "fixture";
+  const disclosure = isFixture
+    ? `Backend fixture/demo data${backendFixture ? ` (${backendFixture})` : ""}. These seeded needs are not an arbitrary-goal result and may not describe your request. Stages reveal the returned sample plan.`
+    : "Backend-generated plan. These stages reveal one returned result, not separate backend searches.";
   return {
     mission: {
       id: plan.mission_id,
       rawInput,
       title: plan.goal_text,
-      budget: dollars(plan.budget_cents),
+      budget: plan.budget_cents === null ? null : dollars(plan.budget_cents),
       needs,
     },
     sources: backendSources.map((source) => ({
       ...source,
       sources: [...source.sources],
     })),
-    copy: { ...backendCopy, disclosure },
+    copy: {
+      ...backendCopy,
+      disclosure,
+      ...(isFixture
+        ? {
+            summary:
+              "The backend returned seeded sample needs. Review this as fixture data, not a generated answer to your goal.",
+            planNote:
+              "This is a backend sample plan. It does not establish that your requested goal was solved.",
+            completion: "Backend sample plan, ready to review.",
+          }
+        : {}),
+    },
     plan: {
       items,
       totalCost: dollars(plan.impact.plan_cents),
@@ -103,7 +116,7 @@ export function adaptBackendPlan(
         .map((need) => need.id),
       totalNeeds: needs.length,
     },
-    provenance: backendFixture ? "backend-demo" : "backend-unverified",
-    ...(backendFixture ? { backendFixture } : {}),
+    provenance: isFixture ? "backend-demo" : "backend-live",
+    ...(isFixture && backendFixture ? { backendFixture } : {}),
   };
 }
