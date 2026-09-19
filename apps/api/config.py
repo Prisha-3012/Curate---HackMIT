@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     xai_api_key: Optional[str] = None
     #: Google AI Studio. Uses Gemini's OpenAI-compatible endpoint.
     gemini_api_key: Optional[str] = None
+    #: Groq. Also OpenAI-compatible; far higher free-tier limits than Gemini's
+    #: 20 requests/day/model, which is what makes multi-turn dialogue viable.
+    groq_api_key: Optional[str] = None
     #: 'xai' | 'openai' | 'auto'. auto prefers whichever key is present,
     #: xAI first.
     llm_provider: str = "auto"

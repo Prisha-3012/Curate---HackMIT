@@ -25,6 +25,7 @@ def _settings(**overrides):
         "openai_api_key": None,
         "xai_api_key": None,
         "gemini_api_key": None,
+        "groq_api_key": None,
         "llm_provider": "auto",
         "llm_model": None,
         "llm_timeout_s": 4.0,
@@ -165,9 +166,13 @@ def test_no_keys_means_no_provider(with_settings):
     assert decompose.pick_provider() is None
 
 
-def test_auto_prefers_gemini_then_xai_then_openai(with_settings):
-    """Gemini first: it is the one with a free tier, so it is the key most
-    likely to have credit behind it."""
+def test_auto_prefers_groq_then_gemini_then_xai_then_openai(with_settings):
+    """The usable free tiers first. Groq ahead of Gemini because Gemini's free
+    tier is 20 requests per day per model — a limit you hit in rehearsal."""
+    with_settings(openai_api_key="sk-o", xai_api_key="sk-x",
+                  gemini_api_key="sk-g", groq_api_key="sk-q")
+    assert decompose.pick_provider().name == "groq"
+
     with_settings(openai_api_key="sk-o", xai_api_key="sk-x", gemini_api_key="sk-g")
     assert decompose.pick_provider().name == "gemini"
 

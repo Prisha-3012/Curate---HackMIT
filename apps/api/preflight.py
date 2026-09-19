@@ -67,6 +67,7 @@ def _probe_llm(name: str, key: str) -> tuple[str, str]:
 def main() -> int:
     s = get_settings()
     keys = {
+        "groq": (s.groq_api_key or "").strip(),
         "gemini": (s.gemini_api_key or "").strip(),
         "openai": (s.openai_api_key or "").strip(),
         "xai": (s.xai_api_key or "").strip(),
@@ -74,7 +75,7 @@ def main() -> int:
 
     print("LLM providers (decompose.py — goal_text -> needs)")
     usable = []
-    for name in ("gemini", "openai", "xai"):
+    for name in ("groq", "gemini", "openai", "xai"):
         key = keys[name]
         if not key:
             print(f"  {WARN}  {name:8} no key set")

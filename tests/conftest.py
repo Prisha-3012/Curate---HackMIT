@@ -32,6 +32,7 @@ def _no_live_llm_calls():
             "openai_api_key": None,
             "xai_api_key": None,
             "gemini_api_key": None,
+            "groq_api_key": None,
             "deepgram_api_key": None,
         }
     )

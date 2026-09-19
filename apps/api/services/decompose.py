@@ -60,11 +60,21 @@ PROVIDERS = {
         "model": "gemini-3.6-flash",
         "structured": "object",
     },
+    "groq": {
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        #: Overridable with LLM_MODEL. Groq retires ids regularly — the
+        #: llama-3.3 name this was first written against was already gone by
+        #: the time the key existed. Check /openai/v1/models, which costs no
+        #: generation quota, before assuming a name is still live.
+        "model": "openai/gpt-oss-120b",
+        "structured": "object",
+    },
 }
 
-#: auto order. Gemini first because it is the one with a free tier, so it is
-#: the key most likely to actually have credit behind it.
-AUTO_ORDER = ("gemini", "xai", "openai")
+#: auto order. The two with usable free tiers first, Groq ahead of Gemini
+#: because Gemini's free tier is 20 requests per day per model and Groq's is
+#: not — a limit you hit during rehearsal, not on stage.
+AUTO_ORDER = ("groq", "gemini", "xai", "openai")
 
 MAX_NEEDS = 6
 
@@ -256,6 +266,7 @@ def pick_provider() -> Optional[Chosen]:
         "openai": (s.openai_api_key or "").strip(),
         "xai": (s.xai_api_key or "").strip(),
         "gemini": (s.gemini_api_key or "").strip(),
+        "groq": (s.groq_api_key or "").strip(),
     }
     wanted = (s.llm_provider or "auto").strip().lower()
 
