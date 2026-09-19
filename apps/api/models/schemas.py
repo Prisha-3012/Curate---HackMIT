@@ -10,7 +10,7 @@ Drift from §4 that is deliberate, and why, is marked DRIFT below.
 from enum import Enum
 from typing import Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class Rung(str, Enum):
@@ -101,6 +101,15 @@ class Need(Base):
     DRIFT (§3/§4): the needs table also has `category` and `attrs`. §4 does not
     serialize them, so they stay server-side; the resolver reads them off the row.
     Do not add them here without telling C, who renders this object.
+
+    UNMET NEEDS (§4 extension, 2026-09-19): a need with no candidate anywhere on
+    the ladder stays in the plan with `options: []`,
+    `recommended_listing_id: null` and an `unmet_reason` string. Dropping it
+    instead would silently shrink the plan and flatter the impact number, which
+    is the one thing the impact number must never do.
+
+    BREAKING for consumers: recommended_listing_id is now nullable. Anything
+    rendering it must handle null.
     """
 
     need_id: str
@@ -108,7 +117,30 @@ class Need(Base):
     rationale: str
     priority: int = Field(ge=1, le=2)  # 1 = essential, 2 = nice-to-have
     options: list[Option]
-    recommended_listing_id: str  # the top-ranked option
+    #: null when the need is unmet. See unmet_reason.
+    recommended_listing_id: Optional[str] = None
+    #: Set only when options is empty. Human-readable, shown in the UI.
+    unmet_reason: Optional[str] = None
+
+    @model_validator(mode="after")
+    def _unmet_needs_are_coherent(self) -> "Need":
+        """A need is either met (options + a recommendation) or unmet (neither,
+        plus a reason). Anything in between is a resolver bug."""
+        if self.options:
+            if self.recommended_listing_id is None:
+                raise ValueError("a need with options must have a recommendation")
+            ids = {o.listing_id for o in self.options}
+            if self.recommended_listing_id not in ids:
+                raise ValueError(
+                    f"recommended_listing_id {self.recommended_listing_id} "
+                    f"is not among this need's own options"
+                )
+        else:
+            if self.recommended_listing_id is not None:
+                raise ValueError("a need with no options cannot recommend one")
+            if not self.unmet_reason:
+                raise ValueError("an unmet need must say why")
+        return self
 
 
 class Impact(Base):

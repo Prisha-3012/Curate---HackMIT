@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     cybersource_merchant_id: Optional[str] = None
     cybersource_key_id: Optional[str] = None
     cybersource_secret_key: Optional[str] = None
+    #: Sandbox by default; production is api.cybersource.com.
+    cybersource_environment: str = "apitest.cybersource.com"
 
     deepgram_api_key: Optional[str] = None
 

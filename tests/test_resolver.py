@@ -37,7 +37,7 @@ def users():
 DEMO_USER = "00000000-0000-0000-0000-000000000001"
 
 
-def _resolve(need, listings, users):
+def _resolve_full(need, listings, users):
     return resolve_need(
         need,
         listings,
@@ -45,6 +45,12 @@ def _resolve(need, listings, users):
         viewer_id=DEMO_USER,
         prefs=repo.prefs_for(DEMO_USER),
     )
+
+
+def _resolve(need, listings, users):
+    """(options, recommended) — drops the unmet reason, which met needs never have."""
+    options, recommended, _reason = _resolve_full(need, listings, users)
+    return options, recommended
 
 
 # --- scoring primitives ----------------------------------------------------
@@ -231,3 +237,56 @@ def test_fitcheck_gate_applied_to_live_options(listings, needs, users):
     options, _ = _resolve(shirts, listings, users)
     flagged = {o.rung for o in options if o.needs_fitcheck}
     assert flagged == {Rung.USED, Rung.NEW}
+
+
+# --- unmet needs (§4 extension, 2026-09-19) --------------------------------
+
+
+def test_a_need_with_no_candidates_is_unmet_not_dropped(listings, users):
+    """Dropping it would shrink the plan silently and flatter the impact number."""
+    impossible = {
+        "id": "00000000-0000-0000-0000-0000000000ff",
+        "label": "a tailcoat",
+        "rationale": "The dress code says white tie.",
+        "category": "outerwear",
+        "attrs": {"formality": "white-tie", "style": "tailcoat"},
+        "priority": 1,
+    }
+    options, recommended, reason = _resolve_full(impossible, listings, users)
+    assert options == []
+    assert recommended is None
+    assert reason
+
+
+def test_unmet_reason_is_specific_enough_to_act_on(listings, users):
+    """'Nothing matched' tells the user nothing they can do about it."""
+    impossible = {
+        "id": "00000000-0000-0000-0000-0000000000fe",
+        "label": "a tailcoat",
+        "rationale": "x",
+        "category": "outerwear",
+        "attrs": {"formality": "white-tie", "style": "tailcoat"},
+        "priority": 1,
+    }
+    _, _, reason = _resolve_full(impossible, listings, users)
+    assert "a tailcoat" in reason
+    assert any(tok in reason for tok in ("best", "category"))
+
+
+def test_empty_category_says_so(listings, users):
+    need = {
+        "id": "00000000-0000-0000-0000-0000000000fd",
+        "label": "a hat",
+        "rationale": "x",
+        "category": "other",
+        "attrs": {"formality": "business-casual"},
+        "priority": 2,
+    }
+    _, _, reason = _resolve_full(need, listings, users)
+    assert "nothing to rank" in reason
+
+
+def test_met_needs_carry_no_unmet_reason(listings, needs, users):
+    for need in needs:
+        _, _, reason = _resolve_full(need, listings, users)
+        assert reason is None

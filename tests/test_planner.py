@@ -58,3 +58,35 @@ def test_unknown_user_still_gets_a_plan():
     """No prefs on file is neutral, not a crash."""
     p = planner.build_plan("x", user_id="00000000-0000-0000-0000-00000000dead", budget_cents=1000)
     assert p.needs
+
+
+# --- unmet needs stay in the plan ------------------------------------------
+
+
+def test_unmet_need_stays_in_the_plan_and_does_not_inflate_impact(monkeypatch):
+    """The whole reason for keeping unmet needs: an impact number computed over
+    a silently shortened plan overstates what the user achieved."""
+    from apps.api.services import planner as mod
+
+    real = mod.needs_for_goal("x")
+    impossible = {
+        "id": "00000000-0000-0000-0000-0000000000ff",
+        "label": "a tailcoat",
+        "rationale": "The dress code says white tie.",
+        "category": "outerwear",
+        "attrs": {"formality": "white-tie", "style": "tailcoat"},
+        "priority": 1,
+    }
+    monkeypatch.setattr(mod, "needs_for_goal", lambda goal: real + [impossible])
+
+    plan = mod.build_plan("x", user_id=DEMO_USER, budget_cents=15000)
+
+    unmet = [n for n in plan.needs if not n.options]
+    assert len(unmet) == 1, "the unmet need must survive into the plan"
+    assert unmet[0].label == "a tailcoat"
+    assert unmet[0].recommended_listing_id is None
+    assert unmet[0].unmet_reason
+
+    # Impact is unchanged by the presence of an unmet need.
+    fixture_impact = fixtures.load_as(fixtures.HERO_PLAN, Plan).impact
+    assert plan.impact == fixture_impact

@@ -41,15 +41,12 @@ def build_plan(
     categories: dict[str, str] = {}
 
     for row in need_rows:
-        options, recommended = resolver.resolve_need(
+        options, recommended, unmet_reason = resolver.resolve_need(
             row, listings, users=users, viewer_id=user_id, prefs=prefs
         )
-        if not options:
-            # No candidate anywhere on the ladder. Dropping the need is wrong —
-            # it would silently shrink the plan and flatter the impact number —
-            # but §4 has no shape for an unmet need, so surface it and move on.
-            # TODO: raise with the team; the UI may want an "unmet" state.
-            continue
+        # Unmet needs stay in the plan (§4 extension, 2026-09-19) with empty
+        # options and a reason. savings.py counts only met needs, so an unmet
+        # one cannot inflate the impact number.
         categories[row["id"]] = row["category"]
         needs.append(
             Need(
@@ -59,6 +56,7 @@ def build_plan(
                 priority=row["priority"],
                 options=options,
                 recommended_listing_id=recommended,
+                unmet_reason=unmet_reason,
             )
         )
 

@@ -198,22 +198,32 @@ def resolve_need(
     users: Optional[dict[str, dict]] = None,
     viewer_id: str = "",
     prefs: Optional[dict[str, Any]] = None,
-) -> tuple[list[Option], Optional[str]]:
+) -> tuple[list[Option], Optional[str], Optional[str]]:
     """Walk the ladder for one need.
 
-    Returns (options, recommended_listing_id). Options are the best candidate on
-    each rung, in ladder order — one choice per step of the ladder, which is what
-    makes the UI legible. recommended is the earliest rung clearing the threshold.
+    Returns (options, recommended_listing_id, unmet_reason). Options are the best
+    candidate on each rung, in ladder order — one choice per step of the ladder,
+    which is what makes the UI legible. recommended is the earliest rung clearing
+    the threshold.
+
+    When nothing anywhere on the ladder clears MIN_SCORE the need is UNMET:
+    options is empty, recommended is None, and unmet_reason says why in a
+    sentence the UI can show. The need still belongs in the plan — dropping it
+    would shrink the plan silently and flatter the impact number.
     """
     users = users or {}
     wanted_category = need["category"]
 
+    in_category = 0
+    best_rejected = 0.0
     best_per_rung: dict[Rung, tuple[float, dict[str, Any]]] = {}
     for listing in listings:
         if listing.get("category") != wanted_category:
             continue  # hard filter
+        in_category += 1
         score = score_listing(listing, need, prefs)
         if score < MIN_SCORE:
+            best_rejected = max(best_rejected, score)
             continue
         rung = Rung(listing["rung"])
         current = best_per_rung.get(rung)
@@ -239,4 +249,24 @@ def resolve_need(
     if recommended is None and options:
         recommended = max(options, key=lambda o: o.match_score).listing_id
 
-    return options, recommended
+    if not options:
+        return [], None, _unmet_reason(need, in_category, best_rejected)
+
+    return options, recommended, None
+
+
+def _unmet_reason(need: dict[str, Any], in_category: int, best_rejected: float) -> str:
+    """Why this need found nothing. Specific enough to be actionable — "nothing
+    matched" tells the user nothing they can act on."""
+    label = need.get("label", "this need")
+    if in_category == 0:
+        return (
+            f"Nothing in your closet, your friends' closets, or the secondhand "
+            f"and new listings falls under {need.get('category', 'this category')}, "
+            f"so there was nothing to rank for {label!r}."
+        )
+    return (
+        f"Found {in_category} item(s) in the right category, but none matched "
+        f"closely enough (best {best_rejected:.2f}, need {MIN_SCORE:.2f}). "
+        f"Try relaxing the requirements for {label!r}."
+    )
