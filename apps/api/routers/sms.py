@@ -47,6 +47,13 @@ def _auth_headers() -> dict[str, str]:
     }
 
 
+def _linq_session() -> requests.Session:
+    # Ignore HTTP(S)_PROXY so send_text can reach api.linqapp.com from this host.
+    session = requests.Session()
+    session.trust_env = False
+    return session
+
+
 def _clip_text(body: str) -> str:
     text = (body or "").replace("\r", " ").strip()
     if len(text) > MAX_SMS_CHARS:
@@ -64,7 +71,7 @@ def send_text(to: str, body: str, chat_id: str | None = None) -> None:
         if chat_id:
             url = f"{LINQ_API_BASE}/chats/{quote(chat_id, safe='')}/messages"
             payload: dict[str, Any] = {"parts": parts}
-            resp = requests.post(url, headers=_auth_headers(), json=payload, timeout=15)
+            resp = _linq_session().post(url, headers=_auth_headers(), json=payload, timeout=15)
             logger.info("Linq send_text via=chats status=%s", resp.status_code)
             if resp.status_code < 400:
                 return
@@ -74,7 +81,7 @@ def send_text(to: str, body: str, chat_id: str | None = None) -> None:
         payload = {"to": [to], "message": {"parts": parts}}
         if from_line:
             payload["from"] = from_line
-        resp = requests.post(url, headers=_auth_headers(), json=payload, timeout=15)
+        resp = _linq_session().post(url, headers=_auth_headers(), json=payload, timeout=15)
         logger.info(
             "Linq send_text via=messages status=%s used_from=%s",
             resp.status_code,
