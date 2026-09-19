@@ -138,3 +138,90 @@ def test_clothing_still_earns_textile_credit():
     assert savings.textile_kg_for("outerwear") > 0
     assert savings.textile_kg_for("shelter") == 0.0
     assert savings.textile_kg_for("nonsense-token") == 0.0
+
+
+# --- a domain the catalogue does not cover ---------------------------------
+
+#: Defined here, not in seed/data, on purpose. The seed pool is not expanded to
+#: chase new domains — a goal the catalogue cannot answer SHOULD come back
+#: unmet, and that honesty is the behaviour under test.
+BIKE_NEEDS = [
+    {
+        "id": "44444444-0000-4000-8000-000000000001",
+        "label": "keep the drivetrain running",
+        "rationale": "A seized chain ends the ride regardless of anything else.",
+        "category": "bike-maintenance",
+        "attrs": {"tool": "chain", "portable": True},
+        "priority": 1,
+    },
+    {
+        "id": "44444444-0000-4000-8000-000000000002",
+        "label": "be visible after sunset",
+        "rationale": "The ride finishes in the dark and drivers need to see you.",
+        "category": "lighting",
+        "attrs": {"portable": True},
+        "priority": 1,
+    },
+]
+
+
+def test_an_uncovered_domain_decomposes_and_reports_unmet_honestly(plan_for, monkeypatch):
+    """A goal outside the catalogue must NOT be quietly answered with whatever
+    is lying around. The need survives into the plan, says why it failed, and
+    contributes nothing to the impact number.
+
+    This is the shape of every non-wardrobe goal the seed does not cover, and
+    getting it wrong is worse than having no answer: a fabricated match sends
+    someone to buy a thing that does not meet their need.
+    """
+    monkeypatch.setattr(planner, "needs_for_goal", lambda goal, **kw: BIKE_NEEDS)
+    plan = planner.build_plan(
+        "get my bike road-ready", user_id=DEMO_USER, budget_cents=10000
+    )
+    Plan.model_validate(plan.model_dump())
+
+    by_label = {n.label: n for n in plan.needs}
+    assert len(by_label) == 2, "both needs stay in the plan; neither is dropped"
+
+    # Nothing in the catalogue is bike-maintenance, so this one cannot resolve.
+    orphan = by_label["keep the drivetrain running"]
+    assert orphan.options == []
+    assert orphan.recommended_listing_id is None
+    assert orphan.unmet_reason
+    assert "bike-maintenance" in orphan.unmet_reason, (
+        "the reason must name what was missing, not just say nothing matched"
+    )
+
+    # 'lighting' exists in the catalogue, so the same goal partly resolves.
+    lit = by_label["be visible after sunset"]
+    assert lit.recommended_listing_id is not None
+    assert lit.unmet_reason is None
+
+
+def test_an_uncovered_need_never_inflates_the_impact_number(plan_for, monkeypatch):
+    """Impact counts met needs only. An unmet need that contributed to
+    baseline_cents would claim a saving the user never made."""
+    monkeypatch.setattr(planner, "needs_for_goal", lambda goal, **kw: BIKE_NEEDS)
+    plan = planner.build_plan(
+        "get my bike road-ready", user_id=DEMO_USER, budget_cents=10000
+    )
+    met = [n for n in plan.needs if n.recommended_listing_id]
+    assert plan.impact.baseline_cents == sum(_rec(n).retail_cents for n in met)
+    assert plan.impact.plan_cents == sum(_rec(n).price_cents for n in met)
+    assert plan.impact.saved_cents == plan.impact.baseline_cents - plan.impact.plan_cents
+
+
+def test_a_wholly_uncovered_goal_returns_no_recommendations_at_all(monkeypatch):
+    """The strongest form: nothing in the catalogue fits, so the plan recommends
+    nothing and says so, rather than reaching for the nearest wardrobe item."""
+    orphan_only = [BIKE_NEEDS[0]]
+    monkeypatch.setattr(planner, "needs_for_goal", lambda goal, **kw: orphan_only)
+    plan = planner.build_plan(
+        "get my bike road-ready", user_id=DEMO_USER, budget_cents=10000
+    )
+    assert all(n.recommended_listing_id is None for n in plan.needs)
+    assert all(n.unmet_reason for n in plan.needs)
+    assert plan.impact.plan_cents == 0
+    assert plan.impact.baseline_cents == 0
+    assert plan.impact.saved_cents == 0
+    assert plan.impact.items_reused == 0
