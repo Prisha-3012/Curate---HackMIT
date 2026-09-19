@@ -4,6 +4,7 @@ import pytest
 
 from apps.api import fixtures
 from apps.api.models.schemas import Plan, Rung
+from apps.api.db import repo
 from apps.api.services import planner
 
 DEMO_USER = "00000000-0000-0000-0000-000000000001"
@@ -68,7 +69,7 @@ def test_unmet_need_stays_in_the_plan_and_does_not_inflate_impact(monkeypatch):
     a silently shortened plan overstates what the user achieved."""
     from apps.api.services import planner as mod
 
-    real = mod.needs_for_goal("x")
+    real = repo.hero_needs()
     impossible = {
         "id": "00000000-0000-0000-0000-0000000000ff",
         "label": "a tailcoat",
@@ -77,7 +78,7 @@ def test_unmet_need_stays_in_the_plan_and_does_not_inflate_impact(monkeypatch):
         "attrs": {"formality": "white-tie", "style": "tailcoat"},
         "priority": 1,
     }
-    monkeypatch.setattr(mod, "needs_for_goal", lambda goal: real + [impossible])
+    monkeypatch.setattr(mod, "needs_for_goal", lambda goal, **kw: real + [impossible])
 
     plan = mod.build_plan("x", user_id=DEMO_USER, budget_cents=15000)
 

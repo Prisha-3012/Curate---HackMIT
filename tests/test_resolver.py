@@ -290,3 +290,46 @@ def test_met_needs_carry_no_unmet_reason(listings, needs, users):
     for need in needs:
         _, _, reason = _resolve_full(need, listings, users)
         assert reason is None
+
+
+# --- ownership scoping ------------------------------------------------------
+
+
+def test_another_users_own_item_is_never_offered(listings, needs, users):
+    """Regression: a listing on the OWN rung owned by someone else was being
+    recommended as "you already own these" — free, and top of the ladder."""
+    footwear = next(n for n in needs if n["category"] == "footwear")
+    mine = next(
+        l for l in listings if l["rung"] == "OWN" and l["category"] == "footwear"
+    )
+    theirs = dict(mine)
+    theirs["id"] = "deadbeef-0000-4000-8000-000000000001"
+    theirs["title"] = "Dev's oxfords"
+    theirs["owner_id"] = "00000000-0000-0000-0000-000000000003"
+    pool = [l for l in listings if l["id"] != mine["id"]] + [theirs]
+
+    options, _ = _resolve(footwear, pool, users)
+    assert not any(o.rung is Rung.OWN for o in options), (
+        "someone else's OWN item was offered to this user"
+    )
+
+
+def test_your_own_item_is_not_offered_as_a_borrow(listings, needs, users):
+    """You do not borrow your own shirt; it would double-count against OWN."""
+    top = next(n for n in needs if n["category"] == "top")
+    borrowable = next(
+        l for l in listings if l["rung"] == "BORROW" and l["category"] == "top"
+    )
+    mine = dict(borrowable)
+    mine["owner_id"] = DEMO_USER
+    pool = [l for l in listings if l["id"] != borrowable["id"]] + [mine]
+
+    options, _ = _resolve(top, pool, users)
+    assert mine["id"] not in {o.listing_id for o in options}
+
+
+def test_own_items_are_labelled_as_yours(listings, needs, users):
+    footwear = next(n for n in needs if n["category"] == "footwear")
+    options, _ = _resolve(footwear, listings, users)
+    own = [o for o in options if o.rung is Rung.OWN]
+    assert own and all(o.owner_label == "you" for o in own)

@@ -49,7 +49,7 @@ FITCHECKABLE = frozenset({Category.TOP, Category.BOTTOM})
 FITCHECK_RUNGS = frozenset({Rung.USED, Rung.NEW})
 
 
-def needs_fitcheck_for(category: Category, rung: Rung) -> bool:
+def needs_fitcheck_for(category: "Category | str", rung: Rung) -> bool:
     """The single place the FitCheck gate is decided.
 
     DRIFT (§1/§4): §1 gates on "NEW or USED and it's apparel", and §4's worked
@@ -58,7 +58,13 @@ def needs_fitcheck_for(category: Category, rung: Rung) -> bool:
     with Prisha 2026-09-19: flag top/bottom only. Raise with A if footwear sizing
     lands later.
     """
-    return category in FITCHECKABLE and rung in FITCHECK_RUNGS
+    # Categories are free-form strings since 2026-09-19 (domain-agnostic goals),
+    # so an unknown category is simply not fit-checkable rather than an error.
+    try:
+        cat = Category(category) if not isinstance(category, Category) else category
+    except ValueError:
+        return False
+    return cat in FITCHECKABLE and rung in FITCHECK_RUNGS
 
 
 class Base(BaseModel):
@@ -124,22 +130,26 @@ class Need(Base):
 
     @model_validator(mode="after")
     def _unmet_needs_are_coherent(self) -> "Need":
-        """A need is either met (options + a recommendation) or unmet (neither,
-        plus a reason). Anything in between is a resolver bug."""
-        if self.options:
-            if self.recommended_listing_id is None:
-                raise ValueError("a need with options must have a recommendation")
+        """The invariant, keyed on the recommendation rather than on options:
+
+            recommended != null  -> it is one of this need's options, no reason
+            recommended == null  -> unmet_reason is set; options MAY be non-empty
+
+        Options are allowed on an unmet need because "three options exist, none
+        within your budget" is materially different information from "nothing
+        exists", and collapsing them would make the plan less truthful.
+        """
+        if self.recommended_listing_id is not None:
+            if self.unmet_reason:
+                raise ValueError("a met need must not carry an unmet_reason")
             ids = {o.listing_id for o in self.options}
             if self.recommended_listing_id not in ids:
                 raise ValueError(
                     f"recommended_listing_id {self.recommended_listing_id} "
                     f"is not among this need's own options"
                 )
-        else:
-            if self.recommended_listing_id is not None:
-                raise ValueError("a need with no options cannot recommend one")
-            if not self.unmet_reason:
-                raise ValueError("an unmet need must say why")
+        elif not self.unmet_reason:
+            raise ValueError("a need with no recommendation must say why")
         return self
 
 

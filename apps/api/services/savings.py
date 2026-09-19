@@ -45,8 +45,17 @@ def constants() -> dict[str, Any]:
 
 
 def textile_kg_for(category: str) -> float:
+    """Textile avoided by NOT buying one new item in this category.
+
+    Returns 0.0 for anything that isn't a garment. Categories are free-form
+    since 2026-09-19, so a plan can be about camping stoves or stockpots —
+    crediting those with an "other" fallback would report textile avoided for
+    borrowing a saucepan, which is the kind of inflated number the impact block
+    exists to avoid. Unknown category means unknown impact, and the honest
+    answer to that is zero.
+    """
     table = constants().get("textile_kg_per_category") or _FALLBACK_KG
-    return float(table.get(category, table.get("other", 1.0)))
+    return float(table.get(category, 0.0))
 
 
 def recommended_options(needs: Iterable[Need]) -> list[tuple[Need, Option]]:
@@ -58,6 +67,11 @@ def recommended_options(needs: Iterable[Need]) -> list[tuple[Need, Option]]:
     """
     out: list[tuple[Need, Option]] = []
     for need in needs:
+        if need.recommended_listing_id is None:
+            # Unmet — nothing was acquired, so it contributes to neither the
+            # plan cost nor the baseline. A budget-dropped need still carries
+            # its options; counting those would claim savings never realised.
+            continue
         match = next(
             (o for o in need.options if o.listing_id == need.recommended_listing_id),
             None,
@@ -75,8 +89,8 @@ def compute(
     """Build the Impact block from a resolved plan.
 
     `categories` maps need_id -> category. §4 doesn't serialize need.category, so
-    the caller passes it through from the needs rows; without it, textile weight
-    falls back to the 'other' constant rather than guessing.
+    the caller passes it through from the needs rows. A category with no textile
+    constant contributes 0.0 — see textile_kg_for.
     """
     categories = categories or {}
     chosen = recommended_options(needs)

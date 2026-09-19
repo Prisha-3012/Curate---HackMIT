@@ -23,7 +23,10 @@ from apps.api.db import client
 DATA_DIR = SEED_DIR / "data"
 
 UUID_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
-CATEGORIES = {"top", "bottom", "outerwear", "footwear", "other"}
+#: Categories are free-form since 2026-09-19 (domain-agnostic goals). The
+#: clothing values are a convention, not a closed set; only the SHAPE is
+#: checked, so a camping or dinner goal can introduce its own token.
+CATEGORY_RE = re.compile(r"^[a-z][a-z0-9-]{1,31}$")
 RUNGS = {"OWN", "BORROW", "USED", "NEW"}
 CONDITIONS = {"new", "excellent", "good", "fair"}
 OWNED_RUNGS = {"OWN", "BORROW"}
@@ -56,8 +59,12 @@ def validate(users: list[dict], listings: list[dict]) -> list[str]:
             errors.append(f"{tag}: duplicate id {lid}")
         seen.add(lid)
 
-        if item.get("category") not in CATEGORIES:
-            errors.append(f"{tag}: bad category {item.get('category')!r}")
+        cat = item.get("category")
+        if not isinstance(cat, str) or not CATEGORY_RE.match(cat):
+            errors.append(
+                f"{tag}: category {cat!r} must be a short lowercase token "
+                f"like 'top' or 'cold-storage'"
+            )
         if item.get("rung") not in RUNGS:
             errors.append(f"{tag}: bad rung {item.get('rung')!r}")
         cond = item.get("condition")

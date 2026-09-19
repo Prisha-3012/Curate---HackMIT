@@ -1,0 +1,71 @@
+{
+  "_comment": "Representative decompositions for test domains. These stand in for OpenAI output so the pipeline can be tested across domains without credits or network. Shape is identical to what decompose.py emits.",
+  "camping": [
+    {
+      "id": "11111111-0000-4000-8000-000000000001",
+      "label": "shelter for five people",
+      "rationale": "Five people need to sleep out of the rain; this is the one thing the trip fails without.",
+      "category": "shelter",
+      "attrs": { "shelter": "tent", "waterproof": true },
+      "priority": 1
+    },
+    {
+      "id": "11111111-0000-4000-8000-000000000002",
+      "label": "stay warm overnight",
+      "rationale": "Nights drop below comfortable even in summer, and nobody sleeps through cold.",
+      "category": "sleep",
+      "attrs": { "sleep": "bag", "warmth": "cold" },
+      "priority": 1
+    },
+    {
+      "id": "11111111-0000-4000-8000-000000000003",
+      "label": "cook hot food",
+      "rationale": "A hot meal is the difference between camping and enduring.",
+      "category": "cooking",
+      "attrs": { "cooking": "stove", "portable": true },
+      "priority": 1
+    },
+    {
+      "id": "11111111-0000-4000-8000-000000000004",
+      "label": "see after dark",
+      "rationale": "Sunset is earlier than people plan for, and cooking in the dark is miserable.",
+      "category": "lighting",
+      "attrs": { "portable": true },
+      "priority": 2
+    }
+  ],
+  "dinner": [
+    {
+      "id": "22222222-0000-4000-8000-000000000001",
+      "label": "somewhere for twelve people to sit",
+      "rationale": "Twelve guests need seating; without it the dinner doesn't happen.",
+      "category": "seating",
+      "attrs": { "seating": "chairs", "indoor": true },
+      "priority": 1
+    },
+    {
+      "id": "22222222-0000-4000-8000-000000000002",
+      "label": "cook for a crowd",
+      "rationale": "Cooking for twelve needs volume a weeknight pan can't handle.",
+      "category": "cookware",
+      "attrs": { "capacity": "large", "stovetop": true },
+      "priority": 1
+    },
+    {
+      "id": "22222222-0000-4000-8000-000000000003",
+      "label": "serve twelve people",
+      "rationale": "Everyone needs something to eat off, ideally not disposable.",
+      "category": "tableware",
+      "attrs": { "tableware": "plates", "reusable": true },
+      "priority": 1
+    },
+    {
+      "id": "22222222-0000-4000-8000-000000000004",
+      "label": "keep food and drinks cold",
+      "rationale": "Fridge space runs out fast when cooking for twelve.",
+      "category": "cold-storage",
+      "attrs": { "cold-storage": "cooler" },
+      "priority": 2
+    }
+  ]
+}

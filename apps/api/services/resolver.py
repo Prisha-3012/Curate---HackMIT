@@ -25,7 +25,7 @@ from __future__ import annotations
 
 from typing import Any, Iterable, Optional
 
-from apps.api.models.schemas import Category, Option, Rung, needs_fitcheck_for
+from apps.api.models.schemas import Option, Rung, needs_fitcheck_for
 
 #: A candidate must clear this to be recommended for a need.
 MATCH_THRESHOLD = 0.60
@@ -125,6 +125,28 @@ def score_listing(
 # --------------------------------------------------------------------------
 
 
+
+def _available_to(listing: dict[str, Any], viewer_id: str) -> bool:
+    """Whether this listing is a real option for THIS person.
+
+    OWN means the viewer owns it. Someone else's OWN item is not free to the
+    viewer and must never be offered — before this check, another user's shoes
+    were recommended as "you already own these".
+
+    BORROW means somebody ELSE owns it and will lend it. The viewer's own item
+    is never something they borrow; it would double-count as OWN.
+
+    USED and NEW are market listings and belong to nobody.
+    """
+    rung = listing.get("rung")
+    owner = listing.get("owner_id")
+    if rung == Rung.OWN.value:
+        return bool(viewer_id) and owner == viewer_id
+    if rung == Rung.BORROW.value:
+        return bool(owner) and owner != viewer_id
+    return True
+
+
 def _owner_label(listing: dict[str, Any], users: dict[str, dict], viewer_id: str) -> str:
     rung = listing["rung"]
     if rung == Rung.OWN.value:
@@ -149,17 +171,25 @@ def explain(listing: dict[str, Any], need: dict[str, Any], owner_label: str) -> 
     preferred — the UI shows this verbatim next to the price.
     """
     rung = listing["rung"]
+    retail = listing.get("retail_cents") or 0
+
+    # Domain-neutral. These strings are shown verbatim in the UI and the goal may
+    # be about camping or a dinner party, so nothing here may assume clothing —
+    # an earlier version told people a tent "matches the formality this goal
+    # needs" and that a cooler "risks no sizing gamble".
     if rung == Rung.OWN.value:
-        return "You already own these. They match the formality this goal needs."
+        if retail:
+            return (
+                f"You already own this. Buying the equivalent new would cost "
+                f"${retail / 100:,.0f}."
+            )
+        return "You already own this, so there is nothing to buy."
     if rung == Rung.BORROW.value:
-        return (
-            f"{owner_label} has one you can borrow. "
-            f"Costs nothing and risks no sizing gamble."
-        )
+        return f"{owner_label} has one you can borrow, so this costs nothing."
     if rung == Rung.USED.value:
         pct = _discount_pct(listing)
-        return f"Secondhand, {pct}% below retail." if pct else "Secondhand."
-    return "Buy new only if the borrowed and secondhand options don't work out."
+        return f"Secondhand, {pct}% below retail." if pct else "Available secondhand."
+    return "Buy new only if the options above don't work out."
 
 
 def to_option(
@@ -180,9 +210,10 @@ def to_option(
         image_url=listing.get("image_url"),
         match_score=score,
         why=explain(listing, need, owner_label),
-        needs_fitcheck=needs_fitcheck_for(
-            Category(need["category"]), Rung(listing["rung"])
-        ),
+        # Category is free-form since 2026-09-19; needs_fitcheck_for tolerates an
+        # unrecognised token and answers False, which is correct — we cannot
+        # size a tent.
+        needs_fitcheck=needs_fitcheck_for(need["category"], Rung(listing["rung"])),
     )
 
 
@@ -220,6 +251,8 @@ def resolve_need(
     for listing in listings:
         if listing.get("category") != wanted_category:
             continue  # hard filter
+        if not _available_to(listing, viewer_id):
+            continue
         in_category += 1
         score = score_listing(listing, need, prefs)
         if score < MIN_SCORE:
