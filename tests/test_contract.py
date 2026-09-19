@@ -209,16 +209,19 @@ def test_a_live_plan_is_labelled_live(monkeypatch) -> None:
     monkeypatch.setattr(
         planner,
         "needs_for_goal",
-        lambda goal, **kw: [
-            {
-                "id": "prov-0001",
-                "label": "a warm layer",
-                "rationale": "x",
-                "category": "outerwear",
-                "attrs": {"formality": "business-casual"},
-                "priority": 1,
-            }
-        ],
+        lambda goal, **kw: (
+            [
+                {
+                    "id": "prov-0001",
+                    "label": "a warm layer",
+                    "rationale": "x",
+                    "category": "outerwear",
+                    "attrs": {"formality": "business-casual"},
+                    "priority": 1,
+                }
+            ],
+            "live",
+        ),
     )
     r = TestClient(app).post(
         "/api/mission",
@@ -259,16 +262,19 @@ def test_a_mission_may_omit_the_budget(monkeypatch) -> None:
     monkeypatch.setattr(
         planner,
         "needs_for_goal",
-        lambda goal, **kw: [
-            {
-                "id": "prov-0002",
-                "label": "a warm layer",
-                "rationale": "x",
-                "category": "outerwear",
-                "attrs": {"formality": "business-casual"},
-                "priority": 1,
-            }
-        ],
+        lambda goal, **kw: (
+            [
+                {
+                    "id": "prov-0002",
+                    "label": "a warm layer",
+                    "rationale": "x",
+                    "category": "outerwear",
+                    "attrs": {"formality": "business-casual"},
+                    "priority": 1,
+                }
+            ],
+            "live",
+        ),
     )
     r = TestClient(app).post(
         "/api/mission", json={"user_id": DEMO_USER, "goal_text": "a real goal"}

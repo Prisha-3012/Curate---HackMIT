@@ -78,7 +78,7 @@ def test_unmet_need_stays_in_the_plan_and_does_not_inflate_impact(monkeypatch):
         "attrs": {"formality": "white-tie", "style": "tailcoat"},
         "priority": 1,
     }
-    monkeypatch.setattr(mod, "needs_for_goal", lambda goal, **kw: real + [impossible])
+    monkeypatch.setattr(mod, "needs_for_goal", lambda goal, **kw: (real + [impossible], "live"))
 
     plan = mod.build_plan("x", user_id=DEMO_USER, budget_cents=15000)
 

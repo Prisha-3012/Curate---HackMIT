@@ -22,7 +22,7 @@ DOMAINS = json.loads((SEED_DIR / "data" / "domain_needs.json").read_text())
 def plan_for(monkeypatch):
     def _build(domain: str, budget_cents: int) -> Plan:
         monkeypatch.setattr(
-            planner, "needs_for_goal", lambda goal, **kw: DOMAINS[domain]
+            planner, "needs_for_goal", lambda goal, **kw: (DOMAINS[domain], "live")
         )
         return planner.build_plan(
             f"{domain} goal", user_id=DEMO_USER, budget_cents=budget_cents
@@ -174,7 +174,7 @@ def test_an_uncovered_domain_decomposes_and_reports_unmet_honestly(plan_for, mon
     getting it wrong is worse than having no answer: a fabricated match sends
     someone to buy a thing that does not meet their need.
     """
-    monkeypatch.setattr(planner, "needs_for_goal", lambda goal, **kw: BIKE_NEEDS)
+    monkeypatch.setattr(planner, "needs_for_goal", lambda goal, **kw: (BIKE_NEEDS, "live"))
     plan = planner.build_plan(
         "get my bike road-ready", user_id=DEMO_USER, budget_cents=10000
     )
@@ -201,7 +201,7 @@ def test_an_uncovered_domain_decomposes_and_reports_unmet_honestly(plan_for, mon
 def test_an_uncovered_need_never_inflates_the_impact_number(plan_for, monkeypatch):
     """Impact counts met needs only. An unmet need that contributed to
     baseline_cents would claim a saving the user never made."""
-    monkeypatch.setattr(planner, "needs_for_goal", lambda goal, **kw: BIKE_NEEDS)
+    monkeypatch.setattr(planner, "needs_for_goal", lambda goal, **kw: (BIKE_NEEDS, "live"))
     plan = planner.build_plan(
         "get my bike road-ready", user_id=DEMO_USER, budget_cents=10000
     )
@@ -215,7 +215,7 @@ def test_a_wholly_uncovered_goal_returns_no_recommendations_at_all(monkeypatch):
     """The strongest form: nothing in the catalogue fits, so the plan recommends
     nothing and says so, rather than reaching for the nearest wardrobe item."""
     orphan_only = [BIKE_NEEDS[0]]
-    monkeypatch.setattr(planner, "needs_for_goal", lambda goal, **kw: orphan_only)
+    monkeypatch.setattr(planner, "needs_for_goal", lambda goal, **kw: (orphan_only, "live"))
     plan = planner.build_plan(
         "get my bike road-ready", user_id=DEMO_USER, budget_cents=10000
     )
@@ -225,3 +225,29 @@ def test_a_wholly_uncovered_goal_returns_no_recommendations_at_all(monkeypatch):
     assert plan.impact.baseline_cents == 0
     assert plan.impact.saved_cents == 0
     assert plan.impact.items_reused == 0
+
+
+def test_fixture_needs_make_the_whole_plan_a_fixture(monkeypatch):
+    """Without a working API key, decompose returns the seeded WARDROBE needs
+    for every goal — so a camping goal comes back with collared shirts.
+
+    Resolution is live, but the plan answers a different question than the one
+    asked, and labelling it source="live" is the same lie as serving the hero
+    fixture unlabelled. Regression: it did exactly that, because needs_for_goal
+    discarded decompose's provenance.
+    """
+    monkeypatch.setattr(
+        planner, "needs_for_goal", lambda goal, **kw: (DOMAINS["camping"], "fixture")
+    )
+    plan = planner.build_plan(
+        "something entirely unrelated", user_id=DEMO_USER, budget_cents=20000
+    )
+    assert plan.source == "fixture"
+
+
+def test_a_real_decomposition_is_labelled_live(monkeypatch):
+    monkeypatch.setattr(
+        planner, "needs_for_goal", lambda goal, **kw: (DOMAINS["camping"], "openai")
+    )
+    plan = planner.build_plan("a camping trip", user_id=DEMO_USER, budget_cents=20000)
+    assert plan.source == "live", "a real provider answered; this plan is live"

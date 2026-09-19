@@ -41,7 +41,7 @@ PAID_NEEDS = [
 @pytest.fixture()
 def plan_with(monkeypatch):
     def _build(rows, budget_cents):
-        monkeypatch.setattr(planner, "needs_for_goal", lambda goal, **kw: rows)
+        monkeypatch.setattr(planner, "needs_for_goal", lambda goal, **kw: (rows, "live"))
         return planner.build_plan("g", user_id=DEMO_USER, budget_cents=budget_cents)
     return _build
 

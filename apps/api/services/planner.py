@@ -22,10 +22,18 @@ from apps.api.services import decompose, resolver, savings
 log = logging.getLogger(__name__)
 
 
-def needs_for_goal(goal_text: str, *, mission_id: str = "") -> list[dict[str, Any]]:
-    """Goal -> need rows, via OpenAI with a fixture fallback."""
-    rows, _source = decompose.decompose(goal_text, mission_id=mission_id or goal_text)
-    return rows
+def needs_for_goal(
+    goal_text: str, *, mission_id: str = ""
+) -> tuple[list[dict[str, Any]], str]:
+    """Goal -> (need rows, provenance), via an LLM with a fixture fallback.
+
+    The provenance is returned, not discarded. When decompose falls back — no
+    API key, a timeout, a 403 — the rows are the SEEDED WARDROBE needs whatever
+    the goal was, so a camping goal comes back with "two collared shirts". That
+    plan does not describe what was asked for and the caller has to be able to
+    say so.
+    """
+    return decompose.decompose(goal_text, mission_id=mission_id or goal_text)
 
 
 def _cost_of(need: Need) -> int:
@@ -123,7 +131,7 @@ def build_plan(
     users = repo.users_by_id()
     prefs = repo.prefs_for(user_id)
 
-    need_rows = needs_for_goal(goal_text, mission_id=mid)
+    need_rows, needs_source = needs_for_goal(goal_text, mission_id=mid)
     needs: list[Need] = []
     categories: dict[str, str] = {}
 
@@ -152,4 +160,8 @@ def build_plan(
         budget_cents=budget_cents,
         needs=needs,
         impact=savings.compute(needs, categories=categories),
+        # Resolution was live either way, but if the NEEDS are canned then the
+        # plan answers a different question than the one asked, which is exactly
+        # what source="fixture" exists to declare.
+        source="live" if needs_source != "fixture" else "fixture",
     )
