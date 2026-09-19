@@ -1,0 +1,60 @@
+"""End to end, with the live resolver and savings rather than the fixture."""
+
+import pytest
+
+from apps.api import fixtures
+from apps.api.models.schemas import Plan, Rung
+from apps.api.services import planner
+
+DEMO_USER = "00000000-0000-0000-0000-000000000001"
+
+
+@pytest.fixture(scope="module")
+def built() -> Plan:
+    return planner.build_plan(
+        "business casual for my internship", user_id=DEMO_USER, budget_cents=15000
+    )
+
+
+def test_built_plan_validates_against_the_contract(built):
+    Plan.model_validate(built.model_dump())
+
+
+def test_built_plan_matches_the_fixture_where_it_counts(built):
+    """Live pipeline and hero fixture must agree on rungs, prices and the
+    recommendation — otherwise the demo changes when DEMO_MODE flips."""
+    fixture = fixtures.load_as(fixtures.HERO_PLAN, Plan)
+
+    assert [n.label for n in built.needs] == [n.label for n in fixture.needs]
+    for live, fixed in zip(built.needs, fixture.needs):
+        assert live.recommended_listing_id == fixed.recommended_listing_id
+        assert [o.rung for o in live.options] == [o.rung for o in fixed.options]
+        assert [o.price_cents for o in live.options] == [o.price_cents for o in fixed.options]
+
+
+def test_built_impact_matches_the_fixture(built):
+    assert built.impact == fixtures.load_as(fixtures.HERO_PLAN, Plan).impact
+
+
+def test_plan_comes_in_under_budget(built):
+    assert built.impact.plan_cents <= built.budget_cents
+
+
+def test_recommendations_prefer_the_lower_rungs(built):
+    rungs = {
+        n.label: next(o.rung for o in n.options if o.listing_id == n.recommended_listing_id)
+        for n in built.needs
+    }
+    assert Rung.NEW not in rungs.values(), "nothing here needs buying new"
+
+
+def test_build_is_deterministic():
+    a = planner.build_plan("x", user_id=DEMO_USER, budget_cents=1000, mission_id="m")
+    b = planner.build_plan("x", user_id=DEMO_USER, budget_cents=1000, mission_id="m")
+    assert a == b
+
+
+def test_unknown_user_still_gets_a_plan():
+    """No prefs on file is neutral, not a crash."""
+    p = planner.build_plan("x", user_id="00000000-0000-0000-0000-00000000dead", budget_cents=1000)
+    assert p.needs
