@@ -7,6 +7,7 @@ export function MissionInput({
   onSubmit,
   busy,
   onVoice,
+  voiceState = "simulated",
   copy,
   exampleInput,
 }: {
@@ -17,7 +18,15 @@ export function MissionInput({
   onSubmit: () => void;
   busy: boolean;
   onVoice?: () => void;
+  /** "simulated" keeps the offline demo's original wording. */
+  voiceState?: "simulated" | "idle" | "recording" | "transcribing";
 }) {
+  const voiceLabel = {
+    simulated: "Try simulated voice input",
+    idle: "Record your mission",
+    recording: "Stop recording",
+    transcribing: "Transcribing…",
+  }[voiceState];
   return (
     <section className="mission-screen enter">
       <div className="eyebrow">
@@ -60,10 +69,12 @@ export function MissionInput({
           {onVoice && (
             <button
               type="button"
-              className="voice-button"
+              className={`voice-button voice-${voiceState}`}
               onClick={onVoice}
-              aria-label="Try simulated voice input"
-              title="Try simulated voice input"
+              aria-label={voiceLabel}
+              aria-pressed={voiceState === "recording"}
+              title={voiceLabel}
+              disabled={voiceState === "transcribing"}
             >
               <Mic size={19} />
             </button>

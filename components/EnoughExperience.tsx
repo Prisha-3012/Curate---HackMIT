@@ -11,6 +11,7 @@ import { DemoControls } from "./DemoControls";
 import { getEnoughService } from "@/lib/services";
 import { waitForDemo } from "@/lib/services/mockEnoughService";
 import { DEMO_MODE, TIMING } from "@/lib/demo-data";
+import { useVoiceCapture } from "@/lib/useVoiceCapture";
 import { backendCopy, backendSources } from "@/lib/api/adaptBackendPlan";
 import { defaultFixture, findFixture, fixtures } from "@/lib/fixtures";
 import { candidateResources, comparisonNeed, prepareFixture } from "@/lib/plan";
@@ -27,6 +28,13 @@ export function EnoughExperience() {
   const [showControls, setShowControls] = useState(false);
   const running = useRef<AbortController | null>(null);
   const mainRef = useRef<HTMLElement>(null);
+  // Hooks cannot be called conditionally, so this runs in demo mode too; its
+  // toggle is simply never wired up there.
+  const voice = useVoiceCapture({
+    baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL ?? "",
+    onTranscript: setInput,
+    onNotice: setNotice,
+  });
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setShowControls(params.get("demoControls") === "true");
@@ -188,8 +196,11 @@ export function EnoughExperience() {
                       "Simulated voice input added. No microphone was accessed.",
                     );
                   }
-                : undefined
+                : voice.supported
+                  ? voice.toggle
+                  : undefined
             }
+            voiceState={DEMO_MODE ? "simulated" : voice.state}
           />
         )}
         {stage === "understanding" && (
