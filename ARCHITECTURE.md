@@ -399,6 +399,27 @@ One person per file. `main.py` is written once in hour 0 and never touched again
 
 Everything below changed after the original Doc was written. Each entry says why.
 
+### 2026-09-19 — step 9: voice is real
+
+`/api/voice/transcribe` and `/api/voice/speak` were step-3 stubs: transcribe
+read the upload, discarded it and returned the fixture transcript for ANY audio,
+and speak returned a 21-byte silent MP3. Both now call Deepgram through
+`services/voice.py`, with those same fixtures as the fallback. Shapes are
+unchanged, so C's mic UI needs no change.
+
+`smart_format=true` matters beyond punctuation: it renders spoken amounts as
+digits, so "my budget is one hundred dollars" arrives as "My budget is $100."
+and the frontend's budget parser can read it. Without it every spoken mission
+would look budget-less.
+
+Silence is the one deliberate exception to fixture-on-failure. An empty
+transcript is returned as an empty string, not replaced with the hero goal —
+the caller asked what was said, and the truthful answer is "nothing".
+
+`X-Voice-Source: deepgram|fixture` on both routes, exposed through CORS, for the
+same reason `Plan.source` exists: a caller must be able to tell a real
+transcript from the canned one without the body shape changing.
+
 ### 2026-09-19 — Gemini as a third provider, and a preflight check
 
 `decompose.py` now knows three providers — Gemini, OpenAI, xAI — all over the

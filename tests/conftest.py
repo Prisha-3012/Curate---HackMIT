@@ -1,4 +1,4 @@
-"""Suite-wide guarantee: no test talks to an LLM provider.
+"""Suite-wide guarantee: no test talks to an LLM or speech provider.
 
 decompose.py picks a provider from whatever keys are in the real .env, so the
 moment a working key existed, every test that called planner.build_plan without
@@ -17,7 +17,7 @@ from types import SimpleNamespace
 import pytest
 
 from apps.api.config import get_settings
-from apps.api.services import decompose
+from apps.api.services import decompose, voice
 
 
 @pytest.fixture(autouse=True, scope="session")
@@ -32,8 +32,12 @@ def _no_live_llm_calls():
             "openai_api_key": None,
             "xai_api_key": None,
             "gemini_api_key": None,
+            "deepgram_api_key": None,
         }
     )
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr(decompose, "get_settings", lambda: keyless)
+        # voice.py reads the Deepgram key the same way, and a real key in .env
+        # would send every voice test to the network.
+        mp.setattr(voice, "get_settings", lambda: keyless)
         yield

@@ -43,7 +43,8 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["X-Demo-Fixture"],
+    # X-Voice-Source lets the mic UI tell a real transcript from the fixture.
+    expose_headers=["X-Demo-Fixture", "X-Voice-Source"],
 )
 app.add_middleware(DemoModeMiddleware)
 

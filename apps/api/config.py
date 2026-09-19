@@ -46,6 +46,10 @@ class Settings(BaseSettings):
     stripe_secret_key: Optional[str] = None
 
     deepgram_api_key: Optional[str] = None
+    #: Deepgram model ids. Overridable for the same reason as LLM_MODEL: they
+    #: move, and a retired id is a 4xx that degrades to the fixture silently.
+    deepgram_stt_model: str = "nova-3"
+    deepgram_tts_model: str = "aura-asteria-en"
 
     #: §6 specified 4s. Measured: gemini-3.6-flash takes 6-9s for a real
     #: decomposition, so 4s timed out EVERY live call and fell back to fixture

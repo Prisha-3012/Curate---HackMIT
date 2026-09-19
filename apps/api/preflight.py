@@ -84,6 +84,29 @@ def main() -> int:
         if status == OK:
             usable.append(name)
 
+    print("\nVoice (Deepgram)")
+    dg = (s.deepgram_api_key or "").strip()
+    if not dg:
+        print(f"  {WARN}  deepgram   no key set; /transcribe returns the fixture "
+              "transcript for ANY audio and /speak returns silence")
+    else:
+        try:
+            r = httpx.post(
+                "https://api.deepgram.com/v1/speak",
+                params={"model": s.deepgram_tts_model},
+                headers={"Authorization": f"Token {dg}",
+                         "Content-Type": "application/json"},
+                json={"text": "ready"},
+                timeout=20.0,
+            )
+            if r.status_code == 200 and r.content:
+                print(f"  {OK}  deepgram   {s.deepgram_tts_model} returned "
+                      f"{len(r.content)} bytes of audio")
+            else:
+                print(f"  {BAD}  deepgram   HTTP {r.status_code}: {r.text[:120]}")
+        except httpx.HTTPError as exc:
+            print(f"  {BAD}  deepgram   {type(exc).__name__}: {exc}")
+
     print("\nData source")
     if not client.configured():
         print(f"  {WARN}  supabase   not configured; reading seed/data/*.json")
