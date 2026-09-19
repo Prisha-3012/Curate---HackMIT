@@ -26,6 +26,12 @@ class Settings(BaseSettings):
     demo_user_id: str = "00000000-0000-0000-0000-000000000001"
 
     openai_api_key: Optional[str] = None
+    xai_api_key: Optional[str] = None
+    #: 'xai' | 'openai' | 'auto'. auto prefers whichever key is present,
+    #: xAI first.
+    llm_provider: str = "auto"
+    #: Overrides the provider's default model id.
+    llm_model: Optional[str] = None
     supabase_url: Optional[str] = None
     supabase_key: Optional[str] = None
 
@@ -40,7 +46,7 @@ class Settings(BaseSettings):
     deepgram_api_key: Optional[str] = None
 
     #: §6: the one live call keeps a 4s timeout and falls back to the fixture.
-    openai_timeout_s: float = 4.0
+    llm_timeout_s: float = 4.0
     cybersource_timeout_s: float = 8.0
     stripe_timeout_s: float = 8.0
     deepgram_timeout_s: float = 6.0

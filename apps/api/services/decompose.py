@@ -26,8 +26,18 @@ from apps.api.db import repo
 
 log = logging.getLogger(__name__)
 
-OPENAI_URL = "https://api.openai.com/v1/chat/completions"
-MODEL = "gpt-4o-mini"
+#: Both providers speak the OpenAI chat-completions protocol, so one client
+#: covers both. xAI is preferred when both keys are present — see pick_provider.
+PROVIDERS = {
+    "openai": {
+        "url": "https://api.openai.com/v1/chat/completions",
+        "model": "gpt-4o-mini",
+    },
+    "xai": {
+        "url": "https://api.x.ai/v1/chat/completions",
+        "model": "grok-3-mini",
+    },
+}
 
 MAX_NEEDS = 6
 
@@ -161,16 +171,45 @@ def _to_need_rows(payload: dict[str, Any], mission_id: str) -> list[dict[str, An
     return rows
 
 
+def pick_provider() -> Optional[tuple[str, str, str, str]]:
+    """(name, url, model, api_key) for the provider to use, or None.
+
+    'auto' prefers xAI when both keys are present. An explicitly named provider
+    is honoured even if the other key is the one that's set, so a misconfigured
+    LLM_PROVIDER fails visibly rather than silently using the wrong account.
+    """
+    s = get_settings()
+    keys = {
+        "openai": (s.openai_api_key or "").strip(),
+        "xai": (s.xai_api_key or "").strip(),
+    }
+    wanted = (s.llm_provider or "auto").strip().lower()
+
+    if wanted in PROVIDERS:
+        order = [wanted]
+    else:
+        if wanted not in ("", "auto"):
+            log.warning("unknown LLM_PROVIDER %r; falling back to auto", wanted)
+        order = ["xai", "openai"]
+
+    for name in order:
+        if keys.get(name):
+            cfg = PROVIDERS[name]
+            return name, cfg["url"], s.llm_model or cfg["model"], keys[name]
+    return None
+
+
 def decompose(goal_text: str, *, mission_id: str) -> tuple[list[dict[str, Any]], str]:
-    """Return (need_rows, source) where source is "openai" or "fixture".
+    """Return (need_rows, source) where source is the provider name or "fixture".
 
     Never raises. A failure here must not take down /api/mission.
     """
     s = get_settings()
-    key = (s.openai_api_key or "").strip()
-    if not key:
-        log.info("no OPENAI_API_KEY; using fixture needs")
+    chosen = pick_provider()
+    if chosen is None:
+        log.info("no LLM api key configured; using fixture needs")
         return repo.hero_needs(), "fixture"
+    provider, url, model, key = chosen
 
     categories, vocabulary = catalogue_vocabulary()
     user_prompt = (
@@ -182,10 +221,10 @@ def decompose(goal_text: str, *, mission_id: str) -> tuple[list[dict[str, Any]],
 
     try:
         r = httpx.post(
-            OPENAI_URL,
+            url,
             headers={"Authorization": f"Bearer {key}"},
             json={
-                "model": MODEL,
+                "model": model,
                 "messages": [
                     {"role": "system", "content": SYSTEM_PROMPT.format(max_needs=MAX_NEEDS)},
                     {"role": "user", "content": user_prompt},
@@ -200,18 +239,23 @@ def decompose(goal_text: str, *, mission_id: str) -> tuple[list[dict[str, Any]],
                 },
                 "temperature": 0.2,
             },
-            timeout=s.openai_timeout_s,
+            timeout=s.llm_timeout_s,
         )
         r.raise_for_status()
         content = r.json()["choices"][0]["message"]["content"]
         rows = _to_need_rows(json.loads(content), mission_id)
     except (httpx.HTTPError, KeyError, IndexError, ValueError, TypeError) as exc:
         # Timeout, transport failure, malformed JSON, or a shape we didn't expect.
-        log.warning("decompose failed (%s); falling back to fixture needs", exc)
+        log.warning(
+            "decompose via %s failed (%s); falling back to fixture needs",
+            provider, exc,
+        )
         return repo.hero_needs(), "fixture"
 
     if not rows:
-        log.warning("decompose returned no usable needs; falling back to fixture")
+        log.warning(
+            "%s returned no usable needs; falling back to fixture", provider
+        )
         return repo.hero_needs(), "fixture"
 
-    return rows, "openai"
+    return rows, provider
