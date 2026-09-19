@@ -121,8 +121,37 @@ def test_free_plans_are_unaffected_by_any_budget(plan_with):
     assert all(n.recommended_listing_id for n in plan.needs)
 
 
-def test_zero_budget_is_treated_as_unconstrained(plan_with):
-    """budget_cents=0 means 'not stated', not 'spend nothing' — §4 has no way to
-    distinguish them and rejecting every paid option would be a worse guess."""
+def test_an_absent_budget_is_unconstrained(plan_with):
+    """budget_cents=None means the user stated no budget, so nothing is enforced."""
+    plan = plan_with(PAID_NEEDS, None)
+    assert all(n.recommended_listing_id for n in plan.needs)
+
+
+def test_zero_is_a_real_constraint_not_an_absent_budget(plan_with):
+    """$0 means $0. These two were the same value until 2026-09-19, so a user
+    who said they could spend nothing was handed a plan that spent money.
+
+    Every PAID_NEEDS option costs something, so a $0 budget must meet none of
+    them — and must say so rather than returning a cheaper-but-still-paid item.
+    """
     plan = plan_with(PAID_NEEDS, 0)
-    assert any(n.recommended_listing_id for n in plan.needs)
+    assert all(n.recommended_listing_id is None for n in plan.needs)
+    assert all(n.unmet_reason for n in plan.needs)
+    assert plan.impact.plan_cents == 0
+
+
+def test_zero_budget_still_keeps_everything_that_is_free(plan_with):
+    """$0 is a spending limit, not a refusal to plan. A dinner answered entirely
+    from OWN and BORROW costs nothing and must survive intact."""
+    plan = plan_with(DOMAINS["dinner"], 0)
+    assert all(n.recommended_listing_id for n in plan.needs)
+    assert plan.impact.plan_cents == 0
+
+
+def test_zero_budget_reason_explains_the_constraint(plan_with):
+    """Shown verbatim in the UI, so it has to read correctly at $0 rather than
+    saying the plan is "already at the $0.00 budget"."""
+    plan = plan_with(PAID_NEEDS, 0)
+    reason = plan.needs[0].unmet_reason
+    assert "$0" in reason
+    assert "own or can borrow" in reason

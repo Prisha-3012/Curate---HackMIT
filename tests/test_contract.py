@@ -19,6 +19,9 @@ from apps.api.models.schemas import (
 )
 
 
+DEMO_USER = "00000000-0000-0000-0000-000000000001"
+
+
 @pytest.fixture(scope="module")
 def plan() -> Plan:
     return fixtures.load_as(fixtures.HERO_PLAN, Plan)
@@ -178,3 +181,99 @@ def test_unregistered_api_route_refuses_rather_than_running_live(client: TestCli
     r = client.post("/api/not-a-real-route", json={})
     assert r.status_code == 503
     assert "no fixture is registered" in r.json()["detail"]
+
+
+# --- provenance: fixture data must never pass as a live result -------------
+
+
+def test_the_hero_fixture_declares_itself_a_fixture(plan: Plan) -> None:
+    """It is a WARDROBE plan. Served for a camping goal it answers the wrong
+    question, so it has to say what it is."""
+    assert plan.source == "fixture"
+
+
+def test_demo_mode_responses_are_labelled_as_fixtures(client: TestClient) -> None:
+    r = client.post(
+        "/api/mission",
+        json={"user_id": DEMO_USER, "goal_text": "anything at all", "budget_cents": 15000},
+    )
+    assert r.status_code == 200
+    assert r.json()["source"] == "fixture"
+    assert r.headers.get("X-Demo-Fixture") == fixtures.HERO_PLAN
+
+
+def test_a_live_plan_is_labelled_live(monkeypatch) -> None:
+    monkeypatch.setenv("DEMO_MODE", "off")
+    from apps.api.services import planner
+
+    monkeypatch.setattr(
+        planner,
+        "needs_for_goal",
+        lambda goal, **kw: [
+            {
+                "id": "prov-0001",
+                "label": "a warm layer",
+                "rationale": "x",
+                "category": "outerwear",
+                "attrs": {"formality": "business-casual"},
+                "priority": 1,
+            }
+        ],
+    )
+    r = TestClient(app).post(
+        "/api/mission",
+        json={"user_id": DEMO_USER, "goal_text": "a real goal", "budget_cents": 50000},
+    )
+    assert r.status_code == 200
+    assert r.json()["source"] == "live"
+
+
+def test_a_planner_failure_is_labelled_a_fixture_not_a_live_plan(monkeypatch) -> None:
+    """The standing rule keeps this at 200 so the demo cannot go down. That makes
+    the label the ONLY thing separating canned data from a real answer."""
+    monkeypatch.setenv("DEMO_MODE", "off")
+    from apps.api.services import planner
+
+    def _explode(*a, **k):
+        raise RuntimeError("live pipeline is down")
+
+    monkeypatch.setattr(planner, "build_plan", _explode)
+    r = TestClient(app).post(
+        "/api/mission",
+        json={"user_id": DEMO_USER, "goal_text": "a camping trip", "budget_cents": 20000},
+    )
+    assert r.status_code == 200
+    assert r.json()["source"] == "fixture", (
+        "a failed live plan was served as though it were real"
+    )
+
+
+# --- $0 is a budget, absent is not -----------------------------------------
+
+
+def test_a_mission_may_omit_the_budget(monkeypatch) -> None:
+    """budget_cents is optional: None means unstated, not zero."""
+    monkeypatch.setenv("DEMO_MODE", "off")
+    from apps.api.services import planner
+
+    monkeypatch.setattr(
+        planner,
+        "needs_for_goal",
+        lambda goal, **kw: [
+            {
+                "id": "prov-0002",
+                "label": "a warm layer",
+                "rationale": "x",
+                "category": "outerwear",
+                "attrs": {"formality": "business-casual"},
+                "priority": 1,
+            }
+        ],
+    )
+    r = TestClient(app).post(
+        "/api/mission", json={"user_id": DEMO_USER, "goal_text": "a real goal"}
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["budget_cents"] is None
+    assert body["needs"][0]["recommended_listing_id"] is not None

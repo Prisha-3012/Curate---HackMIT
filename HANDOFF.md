@@ -248,6 +248,27 @@ purpose, because "three exist, none within your budget" is materially different
 information from "nothing matched", and collapsing them would make the plan less
 truthful. `unmet_reason` is written to be shown to the user directly.
 
+### `budget_cents` is nullable, and `0` is not `null`
+
+`null` means the user stated no budget — nothing is enforced. `0` means a real
+zero-dollar budget: only free options (OWN, BORROW) can be recommended, and
+every paid need comes back unmet with a reason. Send `null` (or omit it) when
+the user has not given a figure; **do not send `0` as a placeholder**, or you
+will get an all-unmet plan back and it will be correct.
+
+### `source` tells you whether the plan is real
+
+`"live"` is a real plan for the goal that was asked. `"fixture"` is canned data
+standing in for one we could not compute — either `DEMO_MODE=on`, or the live
+pipeline failed and the server fell back so the demo could not go down. **A
+fixture plan does not describe the goal that was asked for** — the hero fixture
+is a wardrobe plan and you will get it back for a camping goal, at HTTP 200.
+
+Never present `source: "fixture"` as a real result. Label it, or refuse to
+render it. In demo mode the `X-Demo-Fixture` response header names the fixture
+too, but the body field is the one to branch on: it survives persistence and is
+replayed by `GET /api/mission/{id}`.
+
 ### Empty `options` arrays are legal
 
 `options: []` is valid and means unmet. Do not treat an empty array as a loading

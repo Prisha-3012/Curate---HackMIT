@@ -26,9 +26,16 @@ def create_mission(payload: MissionRequest) -> Plan:
             budget_cents=payload.budget_cents,
         )
     except Exception:
-        # Standing rule: never let the live path take the demo down.
+        # Standing rule: never let the live path take the demo down. But the
+        # hero fixture is a WARDROBE plan and the goal may have been about
+        # camping — returning it unlabelled at 200 presents canned data as a
+        # real answer. source="fixture" (set in hero_plan.json) is what lets a
+        # consumer tell the difference; it is persisted and replayed by GET too.
         log.exception("planner failed, falling back to the hero fixture")
-        return fixtures.load_as(fixtures.HERO_PLAN, Plan)
+        plan = fixtures.load_as(fixtures.HERO_PLAN, Plan)
+        if plan.source != "fixture":  # belt and braces: the file could drift
+            plan = plan.model_copy(update={"source": "fixture"})
+        return plan
 
     stored = repo.save_mission(
         plan.mission_id,

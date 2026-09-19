@@ -122,5 +122,6 @@
     "items_reused": 3,
     "textile_kg_avoided": 9.4,
     "assumptions_note": "Estimates. See seed/impact_constants.json for sources."
-  }
+  },
+  "source": "fixture"
 }

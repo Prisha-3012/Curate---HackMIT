@@ -38,7 +38,7 @@ def _cost_of(need: Need) -> int:
     return match.price_cents if match else 0
 
 
-def enforce_budget(needs: list[Need], budget_cents: int) -> list[Need]:
+def enforce_budget(needs: list[Need], budget_cents: Optional[int]) -> list[Need]:
     """Bring the plan within budget, truthfully.
 
     Needs are dropped to unmet — nice-to-have (priority 2) first, most expensive
@@ -51,7 +51,12 @@ def enforce_budget(needs: list[Need], budget_cents: int) -> list[Need]:
     taking it would invert the product thesis to hit a number. Going without is
     the honest answer, and it is the answer ENOUGH exists to give.
     """
-    if budget_cents <= 0:
+    # None means no budget was stated, so there is nothing to enforce. ZERO IS
+    # NOT NONE: a stated $0 budget is a real constraint meaning "only what is
+    # free", and it falls through to the loop below, which drops every need
+    # whose recommendation costs anything. Treating the two alike (as this did
+    # until 2026-09-19) silently spent money the user said they did not have.
+    if budget_cents is None:
         return needs
 
     total = sum(_cost_of(n) for n in needs)
@@ -72,12 +77,22 @@ def enforce_budget(needs: list[Need], budget_cents: int) -> list[Need]:
         if cost <= 0:
             continue  # free: dropping it saves nothing
         total -= cost
-        dropped[need.need_id] = (
-            f"Found {len(need.options)} option(s), but the cheapest that meets "
-            f"this need costs ${cost / 100:,.2f} and the plan is already at the "
-            f"${budget_cents / 100:,.2f} budget. Shown here so you can decide, "
-            f"not counted in the totals."
-        )
+        # A stated $0 budget reads badly through the general sentence
+        # ("already at the $0.00 budget"), and this string is shown verbatim.
+        if budget_cents == 0:
+            dropped[need.need_id] = (
+                f"Found {len(need.options)} option(s), but the cheapest costs "
+                f"${cost / 100:,.2f} and your budget is $0, so only things you "
+                f"already own or can borrow can be used. Shown here so you can "
+                f"decide, not counted in the totals."
+            )
+        else:
+            dropped[need.need_id] = (
+                f"Found {len(need.options)} option(s), but the cheapest that meets "
+                f"this need costs ${cost / 100:,.2f} and the plan is already at the "
+                f"${budget_cents / 100:,.2f} budget. Shown here so you can decide, "
+                f"not counted in the totals."
+            )
 
     if total > budget_cents:
         log.warning(
@@ -99,7 +114,7 @@ def build_plan(
     goal_text: str,
     *,
     user_id: str,
-    budget_cents: int,
+    budget_cents: Optional[int] = None,
     mission_id: Optional[str] = None,
 ) -> Plan:
     mid = mission_id or str(uuid.uuid4())

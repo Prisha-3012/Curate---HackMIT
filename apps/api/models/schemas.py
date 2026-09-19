@@ -81,7 +81,10 @@ class Base(BaseModel):
 class MissionRequest(Base):
     user_id: str
     goal_text: str
-    budget_cents: int = Field(ge=0)
+    #: None means "no budget stated" — the plan is unconstrained. 0 means a real
+    #: zero-dollar budget: only free options (OWN, BORROW) may be recommended.
+    #: These were the same value until 2026-09-19 and could not be told apart.
+    budget_cents: Optional[int] = Field(default=None, ge=0)
 
 
 class Option(Base):
@@ -168,9 +171,15 @@ class Plan(Base):
 
     mission_id: str
     goal_text: str
-    budget_cents: int = Field(ge=0)
+    #: None means no budget was stated. 0 is a real zero-dollar constraint.
+    budget_cents: Optional[int] = Field(default=None, ge=0)
     needs: list[Need]
     impact: Impact
+    #: Where this plan came from. "fixture" means it is canned data standing in
+    #: for a plan we could not compute — DEMO_MODE, or the live pipeline failing
+    #: — and it does NOT describe the goal that was asked for. Consumers must
+    #: never present a fixture plan as a real result.
+    source: Literal["live", "fixture"] = "live"
 
 
 # --------------------------------------------------------------------------

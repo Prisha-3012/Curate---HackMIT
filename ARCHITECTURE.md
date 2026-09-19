@@ -226,6 +226,8 @@ Brand size charts live in `seed/size_charts/*.json`, not the DB. They're static.
 
 - `image_url` is **optional** on an option.
 - `match_score` is 0..1. `priority` is 1 or 2.
+- `budget_cents` is **nullable** (2026-09-19). `null` means no budget was stated and nothing is enforced; `0` is a real zero-dollar constraint meaning only free options (OWN, BORROW) may be recommended. These were the same value until 2026-09-19, so a user who said they could spend nothing was handed a plan that spent money.
+- `source` is `"live"` or `"fixture"` (2026-09-19). `"fixture"` means the plan is canned data standing in for one we could not compute — `DEMO_MODE=on`, or the live pipeline failing behind the standing never-take-the-demo-down rule. **A fixture plan does not describe the goal that was asked for**: the hero fixture is a wardrobe plan and will be returned for a camping goal. Consumers must never present it as a real result.
 - `baseline_cents` is the sum of the recommended options' `retail_cents` — what the same wardrobe costs at full price. Summing each need's cheapest NEW option instead would flatter the result, because a need with no NEW listing contributes nothing to the baseline while still contributing to the plan.
 - The `needs` rows carry `category` and `attrs`, but the Plan **does not serialize them**. They stay server-side for the resolver.
 
@@ -396,6 +398,24 @@ One person per file. `main.py` is written once in hour 0 and never touched again
 ## Changelog
 
 Everything below changed after the original Doc was written. Each entry says why.
+
+### 2026-09-19 — `budget_cents` nullable, and `Plan.source`
+
+Two fields on the §4 contract, both because the API could not previously tell
+the truth about something.
+
+`budget_cents` was `int` with `0` meaning "unstated", so a stated $0 budget was
+indistinguishable from no budget and was silently ignored. It is now `Optional[int]`:
+`null` is unstated, `0` is a real constraint. Enforcement lives in the planner
+and now falls through to the drop loop at `0`, which keeps free (OWN/BORROW)
+recommendations and drops every paid one.
+
+`Plan.source` did not exist. `POST /api/mission` catches any planner exception
+and returns `hero_plan.json` at **200** so the demo cannot go down — but it
+returned it unlabelled, so canned wardrobe data was indistinguishable from a
+real answer to whatever was asked. The field is set in the fixture file itself,
+so it covers the `DEMO_MODE` path and the failure path alike, and it is
+persisted to `missions.plan_json` so `GET` replays stay honest.
 
 ### 2026-09-19 — Cybersource → Stripe test mode
 Cybersource sandbox credentials and HTTP Signature auth were verified working (real transaction ids returned), but every request — auth-only, no-CVV, `capture:false`, multiple amounts — returned `502 SERVER_ERROR / SYSTEM_ERROR`. That is account provisioning, not code. Switched to §8's documented fallback, Stripe test mode, behind the unchanged §4 `/api/checkout` shape. Visa Developer's Authorization API is being attempted as a second implementation behind the same interface, timeboxed.
