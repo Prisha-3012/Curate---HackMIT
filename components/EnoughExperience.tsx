@@ -8,9 +8,11 @@ import { SearchProgress } from "./SearchProgress";
 import { OptimizationView } from "./OptimizationView";
 import { EnoughPlan } from "./EnoughPlan";
 import { DemoControls } from "./DemoControls";
+import { OttoConversation } from "./OttoConversation";
 import { getEnoughService } from "@/lib/services";
 import { waitForDemo } from "@/lib/services/mockEnoughService";
 import { DEMO_MODE, TIMING } from "@/lib/demo-data";
+import { useVoiceCapture } from "@/lib/useVoiceCapture";
 import { backendCopy, backendSources } from "@/lib/api/adaptBackendPlan";
 import { defaultFixture, findFixture, fixtures } from "@/lib/fixtures";
 import { candidateResources, comparisonNeed, prepareFixture } from "@/lib/plan";
@@ -27,6 +29,13 @@ export function EnoughExperience() {
   const [showControls, setShowControls] = useState(false);
   const running = useRef<AbortController | null>(null);
   const mainRef = useRef<HTMLElement>(null);
+  // Hooks cannot be called conditionally, so this runs in demo mode too; its
+  // toggle is simply never wired up there.
+  const voice = useVoiceCapture({
+    baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL ?? "",
+    onTranscript: setInput,
+    onNotice: setNotice,
+  });
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setShowControls(params.get("demoControls") === "true");
@@ -62,8 +71,14 @@ export function EnoughExperience() {
     url.searchParams.set("fixture", next.id);
     window.history.replaceState(null, "", url);
   }
-  async function submit() {
-    if (!input.trim() || stage !== "mission") return;
+  async function submit(
+    explicitGoal?: string,
+    budgetCents?: number | null,
+  ) {
+    const goal = (explicitGoal ?? input).trim();
+    // The conversation finishes on the "conversation" stage, so the original
+    // mission-only guard would have silently dropped every spoken mission.
+    if (!goal || (stage !== "mission" && stage !== "conversation")) return;
     const run = beginRun();
     setError("");
     setNotice("");
@@ -71,8 +86,9 @@ export function EnoughExperience() {
     setExperience(null);
     try {
       const result = await getEnoughService(fixture).prepareMission(
-        input.trim(),
+        goal,
         run.signal,
+        budgetCents,
       );
       if (!run.signal.aborted) setExperience(result);
     } catch (cause) {
@@ -129,6 +145,8 @@ export function EnoughExperience() {
     : [];
   const stageLabel = {
     mission: "Tell Otto your goal",
+    // Announced to screen readers; the conversation itself is an aria-live log.
+    conversation: "Talking to Otto",
     understanding: experience
       ? "Your mission is understood"
       : "Preparing your mission",
@@ -168,6 +186,15 @@ export function EnoughExperience() {
             {notice}
           </p>
         )}
+        {stage === "conversation" && (
+          <OttoConversation
+            onReady={(goalText, budgetCents) => {
+              setInput(goalText);
+              void submit(goalText, budgetCents);
+            }}
+            onCancel={() => setStage("mission")}
+          />
+        )}
         {stage === "mission" && (
           <MissionInput
             input={input}
@@ -188,8 +215,12 @@ export function EnoughExperience() {
                       "Simulated voice input added. No microphone was accessed.",
                     );
                   }
-                : undefined
+                : voice.supported
+                  ? voice.toggle
+                  : undefined
             }
+            voiceState={DEMO_MODE ? "simulated" : voice.state}
+            onTalk={DEMO_MODE ? undefined : () => setStage("conversation")}
           />
         )}
         {stage === "understanding" && (

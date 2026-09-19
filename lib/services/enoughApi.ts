@@ -26,13 +26,14 @@ export function createEnoughApi(
   timeoutMs = 15000,
 ): EnoughService {
   return {
-    async prepareMission(input, signal) {
+    async prepareMission(input, signal, budgetCents) {
       if (!baseUrl || !userId)
         throw new Error("Backend URL and user ID must be configured.");
       const payload: MissionRequest = {
         user_id: userId,
         goal_text: input,
-        budget_cents: parseBudgetCents(input),
+        budget_cents:
+          budgetCents === undefined ? parseBudgetCents(input) : budgetCents,
       };
       const controller = new AbortController();
       const abort = () => controller.abort(signal?.reason);
