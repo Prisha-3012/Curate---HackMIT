@@ -333,3 +333,60 @@ def test_own_items_are_labelled_as_yours(listings, needs, users):
     options, _ = _resolve(footwear, listings, users)
     own = [o for o in options if o.rung is Rung.OWN]
     assert own and all(o.owner_label == "you" for o in own)
+
+
+# --- rung beats score in the sub-threshold band ----------------------------
+
+
+def _band_listing(listing_id, rung, score_attrs, **overrides):
+    """A listing built to land in the MIN_SCORE..MATCH_THRESHOLD band."""
+    base = {
+        "id": listing_id,
+        "title": f"{rung.title()} candidate",
+        "category": "band-test",
+        "rung": rung,
+        "owner_id": DEMO_USER if rung == "OWN" else None,
+        "price_cents": 0 if rung in ("OWN", "BORROW") else 4000,
+        "retail_cents": 9000,
+        "attrs": score_attrs,
+    }
+    base.update(overrides)
+    return base
+
+
+def test_sub_threshold_fallback_still_prefers_the_earliest_rung(users):
+    """Regression: when NOTHING clears MATCH_THRESHOLD the fallback used to pick
+    max(match_score), which silently inverted the ladder.
+
+    The need states five attributes. OWN satisfies two, NEW satisfies three, so
+    after the taste slice they score 0.41 and 0.59 — both above MIN_SCORE and
+    both under MATCH_THRESHOLD, which is exactly the band where the fallback
+    decides. It must still hand back the OWN item: recommending a purchase over
+    something the user already owns is the outcome the ladder exists to prevent.
+    """
+    need = {
+        "id": "band-0001",
+        "label": "a thing with five properties",
+        "rationale": "x",
+        "category": "band-test",
+        "attrs": {"a": "1", "b": "2", "c": "3", "d": "4", "e": "5"},
+        "priority": 1,
+    }
+    owned = _band_listing("band-own", "OWN", {"a": "1", "b": "2"})
+    brand_new = _band_listing("band-new", "NEW", {"a": "1", "b": "2", "c": "3"})
+
+    options, recommended, reason = resolve_need(
+        need, [owned, brand_new], users=users, viewer_id=DEMO_USER, prefs={}
+    )
+
+    assert reason is None, "both candidates clear MIN_SCORE, so this need is met"
+    scores = {o.listing_id: o.match_score for o in options}
+    assert all(s < MATCH_THRESHOLD for s in scores.values()), (
+        f"test is only meaningful below the threshold; got {scores}"
+    )
+    assert scores["band-new"] > scores["band-own"], (
+        "the NEW item must out-score the owned one or this proves nothing"
+    )
+    assert recommended == "band-own", (
+        "fallback picked the better-scoring NEW item over one already owned"
+    )

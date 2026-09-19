@@ -277,10 +277,16 @@ def resolve_need(
         if recommended is None and score >= MATCH_THRESHOLD:
             recommended = listing["id"]
 
-    # Nothing cleared the bar but something was shown: recommend the best of it
-    # rather than handing the UI a null it has no rule for.
+    # Nothing cleared MATCH_THRESHOLD but something was shown: recommend the
+    # earliest rung anyway, rather than handing the UI a null it has no rule for.
+    #
+    # `options` is already in LADDER order, so options[0] IS the earliest rung.
+    # Taking max(match_score) here instead would break rung-beats-score in
+    # exactly the band where the ladder matters most: with every candidate
+    # scoring between MIN_SCORE and MATCH_THRESHOLD, a marginally better-matching
+    # NEW item would displace something the user already owns.
     if recommended is None and options:
-        recommended = max(options, key=lambda o: o.match_score).listing_id
+        recommended = options[0].listing_id
 
     if not options:
         return [], None, _unmet_reason(need, in_category, best_rejected)
