@@ -1,0 +1,27 @@
+[
+  {
+    "id": "00000000-0000-0000-0000-000000000001",
+    "display_name": "Demo user",
+    "height_cm": 175,
+    "prefs": {
+      "colors": ["navy", "white", "brown", "grey"],
+      "avoid_colors": ["neon"],
+      "avoid_brands": [],
+      "fit": "regular",
+      "materials_preferred": ["cotton", "wool"],
+      "note": "Taste, not goal requirements. Read by resolver.py as one scoring input alongside needs.attrs. See users.prefs in 001_init.sql."
+    }
+  },
+  {
+    "id": "00000000-0000-0000-0000-000000000002",
+    "display_name": "Maya",
+    "height_cm": 172,
+    "prefs": {}
+  },
+  {
+    "id": "00000000-0000-0000-0000-000000000003",
+    "display_name": "Dev",
+    "height_cm": 180,
+    "prefs": {}
+  }
+]
