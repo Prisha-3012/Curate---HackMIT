@@ -23,7 +23,7 @@ class Settings(BaseSettings):
 
     #: Seeded demo user. §4 requires user_id on POST /api/mission but no endpoint
     #: creates one, so it comes from the seed.
-    demo_user_id: str = "00000000-0000-0000-0000-0000000000u1"
+    demo_user_id: str = "00000000-0000-0000-0000-000000000001"
 
     openai_api_key: Optional[str] = None
     supabase_url: Optional[str] = None

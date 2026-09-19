@@ -132,7 +132,7 @@ def test_post_mission_returns_a_plan(client: TestClient) -> None:
     r = client.post(
         "/api/mission",
         json={
-            "user_id": "00000000-0000-0000-0000-0000000000u1",
+            "user_id": "00000000-0000-0000-0000-000000000001",
             "goal_text": "business casual for my internship",
             "budget_cents": 15000,
         },
@@ -146,7 +146,7 @@ def test_get_mission_returns_the_same_object(client: TestClient) -> None:
     post = client.post(
         "/api/mission",
         json={
-            "user_id": "00000000-0000-0000-0000-0000000000u1",
+            "user_id": "00000000-0000-0000-0000-000000000001",
             "goal_text": "business casual for my internship",
             "budget_cents": 15000,
         },
@@ -159,7 +159,7 @@ def test_checkout_and_voice_respond(client: TestClient) -> None:
     r = client.post(
         "/api/checkout",
         json={
-            "user_id": "00000000-0000-0000-0000-0000000000u1",
+            "user_id": "00000000-0000-0000-0000-000000000001",
             "listing_id": "4f70ab53-1d2e-4f60-8b84-9c5d1e3f70a4",
             "measurement_id": None,
             "size_label": "M",
