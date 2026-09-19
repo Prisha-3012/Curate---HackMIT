@@ -50,11 +50,13 @@ export function OptimizationView({
                 />
               ))}
             </div>
-            <ArrowDown size={22} className="optimization-arrow" />
+            {chosen && <ArrowDown size={22} className="optimization-arrow" />}
             <p className="selection-reason">
-              {chosen?.id === need.recommendedOptionId
-                ? (need.recommendationReason ?? chosen?.description)
-                : chosen?.description}
+              {!chosen
+                ? need.unmetReason
+                : chosen.id === need.recommendedOptionId
+                  ? (need.recommendationReason ?? chosen?.description)
+                  : chosen?.description}
             </p>
           </>
         ) : (

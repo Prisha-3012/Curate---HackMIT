@@ -7,11 +7,13 @@ export function SearchProgress({
   candidates,
   sources,
   disclosure,
+  reviewing = false,
 }: {
   activeIndex: number;
   candidates: Resource[];
   sources: SearchSource[];
   disclosure: string;
+  reviewing?: boolean;
 }) {
   const visible = candidates.filter((resource) =>
     sources
@@ -69,7 +71,9 @@ export function SearchProgress({
                       {done
                         ? `${matches.length} ${matches.length === 1 ? "match" : "matches"}`
                         : active
-                          ? "EXPLORING"
+                          ? reviewing
+                            ? "REVIEWING"
+                            : "EXPLORING"
                           : source.sources.includes("new")
                             ? "ONLY IF NEEDED"
                             : "UP NEXT"}
@@ -114,7 +118,11 @@ export function SearchProgress({
             <p>
               One goal. Different ways to meet it.
               <br />
-              <span>Otto is putting the possibilities together.</span>
+              <span>
+                {reviewing
+                  ? "Revealing the returned possibilities."
+                  : "Otto is putting the possibilities together."}
+              </span>
             </p>
           </div>
         </div>

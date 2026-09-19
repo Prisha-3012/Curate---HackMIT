@@ -77,6 +77,8 @@ export interface OptimizedPlan {
   savings: number;
   newPurchasesAvoided: number;
   reusedResources: number;
+  reuseLabel?: string;
+  textileKgAvoided?: number;
   /** Unknown when no selected resource supplies a distance. */
   nearbyResources?: number;
   unmetNeedIds: string[];
@@ -116,7 +118,9 @@ export interface MissionExperience {
   copy: ExperienceCopy;
   plan: OptimizedPlan;
   optimizationNeedId?: string;
-  provenance: "local-fixture";
+  provenance:
+    "local-fixture" | "backend-unverified" | "backend-live" | "backend-demo";
+  backendFixture?: string;
 }
 export interface UserFeedback {
   resourceId: string;

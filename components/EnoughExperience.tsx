@@ -10,7 +10,8 @@ import { EnoughPlan } from "./EnoughPlan";
 import { DemoControls } from "./DemoControls";
 import { getEnoughService } from "@/lib/services";
 import { waitForDemo } from "@/lib/services/mockEnoughService";
-import { TIMING } from "@/lib/demo-data";
+import { DEMO_MODE, TIMING } from "@/lib/demo-data";
+import { backendCopy, backendSources } from "@/lib/api/adaptBackendPlan";
 import { defaultFixture, findFixture, fixtures } from "@/lib/fixtures";
 import { candidateResources, comparisonNeed, prepareFixture } from "@/lib/plan";
 import type { AppStage, MissionExperience } from "@/lib/types";
@@ -74,11 +75,13 @@ export function EnoughExperience() {
         run.signal,
       );
       if (!run.signal.aborted) setExperience(result);
-    } catch {
+    } catch (cause) {
       if (!run.signal.aborted) {
         setStage("mission");
         setError(
-          "Otto couldn’t prepare that example. Your text is saved; please try again.",
+          cause instanceof Error
+            ? cause.message
+            : "Otto couldn’t prepare that mission. Your text is saved; please try again.",
         );
       }
     }
@@ -119,7 +122,8 @@ export function EnoughExperience() {
     setActiveIndex(Math.max(0, Math.min(2, fixture.sources.length - 1)));
     setStage(next);
   }
-  const sources = experience?.sources ?? fixture.sources;
+  const sources =
+    experience?.sources ?? (DEMO_MODE ? fixture.sources : backendSources);
   const candidates = experience
     ? candidateResources(experience.mission.needs)
     : [];
@@ -128,7 +132,7 @@ export function EnoughExperience() {
     understanding: experience
       ? "Your mission is understood"
       : "Preparing your mission",
-    searching: `Exploring ${sources[activeIndex]?.label.toLowerCase() ?? "available"} resources`,
+    searching: `${DEMO_MODE ? "Exploring" : "Reviewing returned"} ${sources[activeIndex]?.label.toLowerCase() ?? "available"} resources`,
     optimizing: "Finding the best combination",
     plan: "Your ENOUGH plan is ready",
   }[stage];
@@ -139,10 +143,14 @@ export function EnoughExperience() {
         <div className="header-right">
           <span className="demo-label">
             <span />
-            {fixture.badge}
+            {DEMO_MODE
+              ? fixture.badge
+              : experience?.provenance === "backend-demo"
+                ? "Backend demo fixture"
+                : "Backend · origin unverified"}
           </span>
           <button className="reset-button" onClick={reset}>
-            <RotateCcw size={13} /> Reset demo
+            <RotateCcw size={13} /> {DEMO_MODE ? "Reset demo" : "New mission"}
           </button>
         </div>
       </header>
@@ -166,14 +174,22 @@ export function EnoughExperience() {
             onChange={setInput}
             onSubmit={submit}
             busy={false}
-            copy={fixture.copy}
-            exampleInput={fixture.mission.rawInput}
-            onVoice={() => {
-              setInput(fixture.mission.rawInput);
-              setNotice(
-                "Simulated voice input added. No microphone was accessed.",
-              );
-            }}
+            copy={DEMO_MODE ? fixture.copy : backendCopy}
+            exampleInput={
+              DEMO_MODE
+                ? fixture.mission.rawInput
+                : "Help me host a dinner for six with a $100 budget"
+            }
+            onVoice={
+              DEMO_MODE
+                ? () => {
+                    setInput(fixture.mission.rawInput);
+                    setNotice(
+                      "Simulated voice input added. No microphone was accessed.",
+                    );
+                  }
+                : undefined
+            }
           />
         )}
         {stage === "understanding" && (
@@ -189,6 +205,7 @@ export function EnoughExperience() {
             candidates={discovered ? candidates : []}
             sources={sources}
             disclosure={experience?.copy.disclosure ?? fixture.copy.disclosure}
+            reviewing={!DEMO_MODE}
           />
         )}
         {stage === "optimizing" && experience && (
@@ -202,7 +219,7 @@ export function EnoughExperience() {
           <EnoughPlan experience={experience} onRestart={reset} />
         )}
       </main>
-      {showControls && (
+      {DEMO_MODE && showControls && (
         <DemoControls
           stage={stage}
           onJump={jump}

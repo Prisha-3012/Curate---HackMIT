@@ -20,13 +20,19 @@ export function EnoughPlan({
   const complete = !partial && !empty && !overBudget;
   const metrics = [
     { value: plan.newPurchasesAvoided, label: "new purchases avoided" },
-    { value: plan.reusedResources, label: "owned, borrowed or shared" },
+    {
+      value: plan.reusedResources,
+      label: plan.reuseLabel ?? "owned, borrowed or shared",
+    },
     ...(plan.nearbyResources !== undefined
       ? [{ value: plan.nearbyResources, label: "finds within one mile" }]
       : []),
   ];
   return (
     <section className="plan-screen enter">
+      {experience.provenance !== "local-fixture" && (
+        <p className="demo-note">{copy.disclosure}</p>
+      )}
       <div className="plan-intro">
         <div>
           <span className="eyebrow">
@@ -97,6 +103,22 @@ export function EnoughPlan({
                       </span>
                       {group.needs.length > 1 && <h3>{need.label}</h3>}
                       <p>{need.unmetReason}</p>
+                      {need.options.length > 0 && (
+                        <div>
+                          <p>
+                            Available candidates · not included in this plan or
+                            its totals.
+                          </p>
+                          {need.options.map((resource) => (
+                            <ResourceCard
+                              key={resource.id}
+                              resource={resource}
+                              needLabel={need.label}
+                              variant="candidate"
+                            />
+                          ))}
+                        </div>
+                      )}
                       {need.rationale && (
                         <p className="unmet-rationale">{need.rationale}</p>
                       )}

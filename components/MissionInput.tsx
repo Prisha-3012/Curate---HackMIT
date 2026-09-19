@@ -16,7 +16,7 @@ export function MissionInput({
   onChange: (v: string) => void;
   onSubmit: () => void;
   busy: boolean;
-  onVoice: () => void;
+  onVoice?: () => void;
 }) {
   return (
     <section className="mission-screen enter">
@@ -57,15 +57,17 @@ export function MissionInput({
           }}
         />
         <div className="composer-bottom">
-          <button
-            type="button"
-            className="voice-button"
-            onClick={onVoice}
-            aria-label="Try simulated voice input"
-            title="Try simulated voice input"
-          >
-            <Mic size={19} />
-          </button>
+          {onVoice && (
+            <button
+              type="button"
+              className="voice-button"
+              onClick={onVoice}
+              aria-label="Try simulated voice input"
+              title="Try simulated voice input"
+            >
+              <Mic size={19} />
+            </button>
+          )}
           <span className="input-hint">
             <CornerDownLeft size={12} /> ⌘ / Ctrl + Enter
           </span>

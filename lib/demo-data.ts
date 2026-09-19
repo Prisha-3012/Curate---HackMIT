@@ -1,4 +1,4 @@
-export const DEMO_MODE = true;
+export const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE !== "false";
 /** Presentation timing is fixed and independent of content or source count. */
 export const TIMING = {
   understand: 900,
