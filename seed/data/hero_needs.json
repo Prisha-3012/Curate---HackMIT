@@ -1,0 +1,26 @@
+[
+  {
+    "id": "7a2e1b90-4c6d-4e81-8f03-5b9a7c2d1e40",
+    "label": "a pair of non-sneaker shoes",
+    "rationale": "Most business-casual dress codes rule out athletic sneakers, and shoes are the first thing people notice in an office.",
+    "category": "footwear",
+    "attrs": { "formality": "business-casual", "sneaker": false },
+    "priority": 1
+  },
+  {
+    "id": "8b3f2c01-5d7e-4f92-9a14-6c0b8d3e2f51",
+    "label": "two collared shirts you can rotate",
+    "rationale": "Two shirts cover a five-day week with one wash, which is the smallest number that actually works.",
+    "category": "top",
+    "attrs": { "formality": "business-casual", "collar": true },
+    "priority": 1
+  },
+  {
+    "id": "9c4a3d12-6e8f-40a3-8b25-7d1c9e4f3a62",
+    "label": "one layer for over-air-conditioned offices",
+    "rationale": "Offices run cold year-round, and a layer is what makes the same two shirts read as deliberate rather than repeated.",
+    "category": "outerwear",
+    "attrs": { "formality": "business-casual", "warmth": "medium" },
+    "priority": 2
+  }
+]
