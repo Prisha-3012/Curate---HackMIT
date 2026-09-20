@@ -66,7 +66,7 @@ test("single backend response drives every stage and preserves budget-unmet cand
     "NEW",
   ]);
   await expect(
-    page.getByRole("heading", { name: "Here’s your ENOUGH plan." }),
+    page.getByRole("heading", { name: "Here’s your curated plan." }),
   ).toBeVisible({ timeout: 15000 });
   await expect(page.locator(".plan-intro")).toContainText(
     "0 of 1 sample needs matched",

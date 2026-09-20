@@ -8,6 +8,7 @@ import { MissionSummary } from "./MissionSummary";
 import { SearchProgress } from "./SearchProgress";
 import { OptimizationView } from "./OptimizationView";
 import { EnoughPlan } from "./EnoughPlan";
+import { ThemeToggle } from "./ThemeToggle";
 import { DemoControls } from "./DemoControls";
 import { OttoConversation } from "./OttoConversation";
 import { getEnoughService } from "@/lib/services";
@@ -153,7 +154,7 @@ export function EnoughExperience() {
       : "Preparing your mission",
     searching: `${DEMO_MODE ? "Exploring" : "Reviewing returned"} ${sources[activeIndex]?.label.toLowerCase() ?? "available"} resources`,
     optimizing: "Finding the best combination",
-    plan: "Your ENOUGH plan is ready",
+    plan: "Your curated plan is ready",
   }[stage];
   return (
     <div className="app-shell">
@@ -168,6 +169,7 @@ export function EnoughExperience() {
                 ? "Backend demo fixture"
                 : "Backend"}
           </span>
+          <ThemeToggle />
           <button className="reset-button" onClick={reset}>
             <RotateCcw size={13} /> {DEMO_MODE ? "Reset demo" : "New mission"}
           </button>

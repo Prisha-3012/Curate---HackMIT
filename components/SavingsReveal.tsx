@@ -54,7 +54,7 @@ export function SavingsReveal({
   return (
     <aside className="savings-panel" aria-label="Your savings">
       <div className="savings-heading">
-        <span>THE DIFFERENCE IS ENOUGH.</span>
+        <span>THE DIFFERENCE IS THE POINT.</span>
         <ArrowUpRight size={19} />
       </div>
       {incomplete && (
@@ -73,7 +73,7 @@ export function SavingsReveal({
         <span>A little more resourceful.</span>
       </div>
       <div className="enough-price">
-        <span>{incomplete ? "WITH ENOUGH · SO FAR" : "WITH ENOUGH"}</span>
+        <span>{incomplete ? "WITH CURATE · SO FAR" : "WITH CURATE"}</span>
         <strong>
           <AnimatedAmount value={plan.totalCost} />
         </strong>
