@@ -87,6 +87,18 @@ class MissionRequest(Base):
     budget_cents: Optional[int] = Field(default=None, ge=0)
 
 
+class MarketplaceLink(Base):
+    """A secondhand search link for a USED option — eBay, Depop, and so on.
+
+    Constructed server-side (services/secondhand.py) so the UI can send the user
+    straight to live secondhand results for the item. name is the marketplace,
+    url is a ready-to-open search URL.
+    """
+
+    name: str
+    url: str
+
+
 class Option(Base):
     """One way to satisfy a need, on one rung."""
 
@@ -101,6 +113,9 @@ class Option(Base):
     image_url: Optional[str] = None
     #: Present for live market options. OWN/BORROW and legacy fixtures omit it.
     product_url: Optional[str] = None
+    #: Secondhand search links (eBay, Depop, Poshmark, …) for USED options.
+    #: Empty for OWN/BORROW/NEW. Filled by services/secondhand.py.
+    marketplaces: list[MarketplaceLink] = Field(default_factory=list)
     provider: Optional[str] = None
     match_score: float = Field(ge=0.0, le=1.0)
     why: str

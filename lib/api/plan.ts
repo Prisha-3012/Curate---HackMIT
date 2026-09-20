@@ -12,6 +12,12 @@
 /** The ladder, in the order the resolver walks it. */
 export type Rung = "OWN" | "BORROW" | "USED" | "NEW";
 
+/** A secondhand search link for a USED option (eBay, Depop, …). */
+export interface MarketplaceLink {
+  name: string;
+  url: string;
+}
+
 /** One way to satisfy a need, on one rung. */
 export interface PlanOption {
   listing_id: string;
@@ -25,6 +31,8 @@ export interface PlanOption {
   retail_cents: number;
   image_url?: string | null;
   product_url?: string | null;
+  /** Secondhand search links for USED options; empty/absent otherwise. */
+  marketplaces?: MarketplaceLink[];
   /** 0..1. */
   match_score: number;
   /** One sentence, shown verbatim next to the price. */

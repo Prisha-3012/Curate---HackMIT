@@ -58,6 +58,7 @@ export function adaptBackendPlan(
       ownerName: option.owner_label,
       image: option.image_url ?? undefined,
       productUrl: option.product_url ?? undefined,
+      marketplaces: option.marketplaces ?? [],
       matchScore: option.match_score,
       description: option.why,
       needsFitcheck: option.needs_fitcheck,

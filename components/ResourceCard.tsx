@@ -60,8 +60,48 @@ export function ResourceCard({
             {percent(resource.matchScore)} match
           </span>
         )}
-        {resource.productUrl &&
-          (resource.source === "used" || resource.source === "new") && (
+        {resource.productUrl && resource.source === "new" && (
+          <a
+            className="product-link"
+            href={resource.productUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            View product →
+          </a>
+        )}
+        {resource.source === "used" &&
+          (resource.marketplaces?.length ?? 0) > 0 && (
+            <div
+              className="marketplace-links"
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                gap: "0.5rem",
+                marginTop: "0.35rem",
+              }}
+            >
+              <span style={{ fontSize: "0.72rem", opacity: 0.6 }}>
+                Find secondhand:
+              </span>
+              {resource.marketplaces!.map((m) => (
+                <a
+                  key={m.name}
+                  className="product-link"
+                  href={m.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ fontSize: "0.78rem" }}
+                >
+                  {m.name}
+                </a>
+              ))}
+            </div>
+          )}
+        {resource.source === "used" &&
+          (resource.marketplaces?.length ?? 0) === 0 &&
+          resource.productUrl && (
             <a
               className="product-link"
               href={resource.productUrl}
