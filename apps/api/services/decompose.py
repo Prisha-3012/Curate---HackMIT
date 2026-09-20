@@ -90,6 +90,8 @@ already owns or can borrow over buying. If you name products you remove that
 choice, so describe the requirement and stop there.
 
 Rules:
+- Constraints such as budget, price limits, deadlines, dates, location, and user preferences are NOT needs. Never emit a need whose purpose is merely to satisfy a constraint.
+- A budget constrains how needs are satisfied; it is never itself something that needs a resource or product.
 - Between 2 and {max_needs} needs. Fewer, larger needs beat many trivial ones.
 - priority 1 = the goal fails without it. priority 2 = genuinely optional.
 - `category` groups interchangeable solutions. PREFER a value from the known
