@@ -1,7 +1,22 @@
-import { ArrowUpRight, CornerDownLeft, Mic, MoveUpRight } from "lucide-react";
+import { useRef, useState } from "react";
+import {
+  ArrowUpRight,
+  CornerDownLeft,
+  ImagePlus,
+  Mic,
+  MoveUpRight,
+  X,
+} from "lucide-react";
 import type { ExperienceCopy } from "@/lib/types";
 import type { ReactNode } from "react";
 import { OttoAgent } from "./OttoAgent";
+
+/** What the mic is doing right now, in words, for people who can see it. */
+const VOICE_STATUS: Record<string, string> = {
+  recording: "Listening…",
+  transcribing: "Writing that down…",
+};
+
 export function MissionInput({
   input,
   onChange,
@@ -27,14 +42,34 @@ export function MissionInput({
   /** "simulated" keeps the offline demo's original wording. */
   voiceState?: "simulated" | "idle" | "recording" | "transcribing";
 }) {
+  // An attached image is held here and nowhere else. No endpoint accepts one
+  // yet, so this control must not imply the photo was sent anywhere.
+  const [image, setImage] = useState<{ name: string; url: string } | null>(
+    null,
+  );
+  const fileRef = useRef<HTMLInputElement>(null);
+
   const voiceLabel = {
     simulated: "Try simulated voice input",
     idle: "Record your mission",
     recording: "Stop recording",
     transcribing: "Transcribing…",
   }[voiceState];
+  const status = VOICE_STATUS[voiceState];
+
+  function attach(file: File | undefined) {
+    if (!file) return;
+    if (image) URL.revokeObjectURL(image.url);
+    setImage({ name: file.name, url: URL.createObjectURL(file) });
+  }
+  function detach() {
+    if (image) URL.revokeObjectURL(image.url);
+    setImage(null);
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
   return (
-    <section className="mission-screen enter">
+    <section className="mission-screen stagger">
       <div className="eyebrow">
         <span className="tiny-star">✳</span> A LITTLE RESOURCEFULNESS GOES A
         LONG WAY
@@ -71,6 +106,20 @@ export function MissionInput({
             }
           }}
         />
+        {image && (
+          <div className="attachment">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={image.url} alt="" />
+            <span>{image.name}</span>
+            <button
+              type="button"
+              onClick={detach}
+              aria-label={`Remove ${image.name}`}
+            >
+              <X size={13} />
+            </button>
+          </div>
+        )}
         <div className="composer-bottom">
           {onVoice && (
             <button
@@ -85,9 +134,32 @@ export function MissionInput({
               <Mic size={19} />
             </button>
           )}
-          <span className="input-hint">
-            <CornerDownLeft size={12} /> ⌘ / Ctrl + Enter
-          </span>
+          <input
+            ref={fileRef}
+            id="mission-image"
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            onChange={(e) => attach(e.target.files?.[0])}
+          />
+          <button
+            type="button"
+            className="voice-button"
+            onClick={() => fileRef.current?.click()}
+            aria-label="Add a photo"
+            title="Add a photo"
+          >
+            <ImagePlus size={18} />
+          </button>
+          {status ? (
+            <span className="voice-status" role="status" aria-live="polite">
+              <i aria-hidden="true" /> {status}
+            </span>
+          ) : (
+            <span className="input-hint">
+              <CornerDownLeft size={12} /> ⌘ / Ctrl + Enter
+            </span>
+          )}
           <button
             className="button primary"
             type="submit"
@@ -99,16 +171,12 @@ export function MissionInput({
         </div>
       </form>
       {closetCheck}
-      {onTalk && (
-        <div className="example-row">
-          <span>Rather talk?</span>
-          <button onClick={onTalk}>
-            Talk to Otto <Mic size={13} />
-          </button>
-        </div>
-      )}
       <div className="example-row">
-        <span>Try a mission</span>
+        {onTalk && (
+          <button className="talk-button" onClick={onTalk}>
+            <Mic size={13} /> Talk to Otto
+          </button>
+        )}
         <button onClick={() => onChange(exampleInput)}>
           {copy.exampleLabel} <MoveUpRight size={13} />
         </button>
@@ -121,7 +189,7 @@ export function MissionInput({
           <span>Buying new comes last.</span>
         </p>
       </div>
-      <p className="demo-note">{copy.disclosure}</p>
+      {copy.disclosure && <p className="demo-note">{copy.disclosure}</p>}
     </section>
   );
 }

@@ -37,9 +37,9 @@ test("a typed conversation reaches a real plan", async ({ page, request }) => {
 
   // Conversation hands off to /api/mission and the plan renders.
   await expect(
-    page.getByRole("button", { name: /find a better way/i }),
+    page.getByRole("button", { name: /^next$/i }),
   ).toBeVisible({ timeout: 40000 });
-  await page.getByRole("button", { name: /find a better way/i }).click();
+  await page.getByRole("button", { name: /^next$/i }).click();
   await expect(page.getByText(/here.s your/i)).toBeVisible({ timeout: 40000 });
 
   const body = await page.locator("body").innerText();

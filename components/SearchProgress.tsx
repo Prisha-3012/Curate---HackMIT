@@ -1,4 +1,4 @@
-import { Check, ArrowDown, Package, ArrowDownRight } from "lucide-react";
+import { Check, ArrowDown, Package } from "lucide-react";
 import type { Resource, SearchSource } from "@/lib/types";
 import { OttoAgent } from "./OttoAgent";
 import { ResourceCard } from "./ResourceCard";
@@ -15,21 +15,26 @@ export function SearchProgress({
   disclosure: string;
   reviewing?: boolean;
 }) {
+  const active = sources[activeIndex];
   const visible = candidates.filter((resource) =>
     sources
       .slice(0, activeIndex + 1)
       .some((source) => source.sources.includes(resource.source)),
   );
   return (
-    <section className="search-screen enter">
-      <div className="section-intro">
-        <span className="eyebrow">02 / LOOKING IN THE RIGHT PLACES</span>
-        <h1>
-          More possibilities.
-          <br />
-          <em>Fewer new things.</em>
-        </h1>
-        <p className="lead">Yours first. New only when it needs to be.</p>
+    <section className="search-screen">
+      <div className="section-intro stagger">
+        <span className="eyebrow">02 / SEARCHING</span>
+        <h1>Checking what already exists</h1>
+        <p className="lead" aria-live="polite">
+          {active ? (
+            <>
+              Looking through <em>{active.label}</em>
+            </>
+          ) : (
+            "Every rung checked."
+          )}
+        </p>
       </div>
       <div className="search-layout">
         <ol
@@ -113,21 +118,9 @@ export function SearchProgress({
                 ))
             )}
           </div>
-          <div className="pool-footnote">
-            <ArrowDownRight size={19} />
-            <p>
-              One goal. Different ways to meet it.
-              <br />
-              <span>
-                {reviewing
-                  ? "Revealing the returned possibilities."
-                  : "Otto is putting the possibilities together."}
-              </span>
-            </p>
-          </div>
         </div>
       </div>
-      <p className="demo-note">{disclosure}</p>
+      {disclosure && <p className="demo-note">{disclosure}</p>}
     </section>
   );
 }

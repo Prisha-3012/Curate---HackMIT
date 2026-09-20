@@ -161,17 +161,15 @@ export function EnoughExperience() {
       <header className="site-header">
         <EnoughLogo />
         <div className="header-right">
-          <span className="demo-label">
-            <span />
-            {DEMO_MODE
-              ? fixture.badge
-              : experience?.provenance === "backend-demo"
-                ? "Backend demo fixture"
-                : "Backend"}
-          </span>
+          {experience?.provenance === "backend-demo" && (
+            <span className="demo-label">
+              <span />
+              Sample data
+            </span>
+          )}
           <ThemeToggle />
           <button className="reset-button" onClick={reset}>
-            <RotateCcw size={13} /> {DEMO_MODE ? "Reset demo" : "New mission"}
+            <RotateCcw size={13} /> New mission
           </button>
         </div>
       </header>

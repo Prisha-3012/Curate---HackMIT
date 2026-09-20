@@ -59,7 +59,7 @@ test("single backend response drives every stage and preserves budget-unmet cand
   await expect(page.locator(".demo-note")).toContainText(
     "Backend fixture/demo data",
   );
-  await page.getByRole("button", { name: "Find a better way" }).click();
+  await page.getByRole("button", { name: "Next" }).click();
   await expect(page.locator(".ladder-title>span")).toHaveText([
     "OWN",
     "USED",
