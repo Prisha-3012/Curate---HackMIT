@@ -13,7 +13,7 @@ from apps.api.config import get_settings
 from apps.api.db import repo
 from apps.api.services import payments
 from apps.api.demo import DemoModeMiddleware
-from apps.api.routers import checkout, converse, mission, retailer, voice
+from apps.api.routers import checkout, converse, mission, retailer, voice, wardrobe
 
 #: §6, verbatim.
 DEMO_MODE = os.getenv("DEMO_MODE", "off")
@@ -44,7 +44,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
     # X-Voice-Source lets the mic UI tell a real transcript from the fixture.
-    expose_headers=["X-Demo-Fixture", "X-Voice-Source"],
+    expose_headers=["X-Demo-Fixture", "X-Voice-Source", "X-Wardrobe-Source"],
 )
 app.add_middleware(DemoModeMiddleware)
 
@@ -53,6 +53,7 @@ app.include_router(converse.router)
 app.include_router(checkout.router)
 app.include_router(retailer.router)
 app.include_router(voice.router)
+app.include_router(wardrobe.router)
 
 
 @app.get("/health", tags=["meta"])
