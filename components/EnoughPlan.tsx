@@ -4,6 +4,7 @@ import { money } from "@/lib/formatting";
 import { groupNeeds } from "@/lib/plan";
 import { OttoAgent } from "./OttoAgent";
 import { ResourceCard } from "./ResourceCard";
+import { Reveal } from "./Reveal";
 import { SavingsReveal } from "./SavingsReveal";
 export function EnoughPlan({
   experience,
@@ -81,59 +82,57 @@ export function EnoughPlan({
             </span>
           </div>
           <div className="need-cards">
-            {groups.map((group, index) => (
-              <article
-                className="need-card enter"
-                key={group.id}
-                style={{ animationDelay: `${index * 65}ms` }}
-              >
-                <div className="need-card-heading">
-                  <Shapes size={18} strokeWidth={1.5} />
-                  <h2>{group.label}</h2>
-                  <span>{String(index + 1).padStart(2, "0")}</span>
-                </div>
-                {group.needs.map((need) => {
-                  const item = plan.items.find(
-                    (item) => item.needId === need.id,
-                  );
-                  return item ? (
-                    <ResourceCard
-                      key={need.id}
-                      resource={item.resource}
-                      needLabel={need.label}
-                      explanation={item.reasoning}
-                    />
-                  ) : (
-                    <div className="unmet-need" key={need.id}>
-                      <span className="unmet-label">
-                        <CircleHelp size={13} /> STILL NEEDED
-                      </span>
-                      {group.needs.length > 1 && <h3>{need.label}</h3>}
-                      <p>{need.unmetReason}</p>
-                      {need.options.length > 0 && (
-                        <div>
-                          <p>
-                            Available candidates · not included in this plan or
-                            its totals.
-                          </p>
-                          {need.options.map((resource) => (
-                            <ResourceCard
-                              key={resource.id}
-                              resource={resource}
-                              needLabel={need.label}
-                              variant="candidate"
-                            />
-                          ))}
-                        </div>
-                      )}
-                      {need.rationale && (
-                        <p className="unmet-rationale">{need.rationale}</p>
-                      )}
-                    </div>
-                  );
-                })}
-              </article>
-            ))}
+            <Reveal>
+              {groups.map((group, index) => (
+                <article className="need-card" key={group.id}>
+                  <div className="need-card-heading">
+                    <Shapes size={18} strokeWidth={1.5} />
+                    <h2>{group.label}</h2>
+                    <span>{String(index + 1).padStart(2, "0")}</span>
+                  </div>
+                  {group.needs.map((need) => {
+                    const item = plan.items.find(
+                      (item) => item.needId === need.id,
+                    );
+                    return item ? (
+                      <ResourceCard
+                        key={need.id}
+                        resource={item.resource}
+                        needLabel={need.label}
+                        explanation={item.reasoning}
+                      />
+                    ) : (
+                      <div className="unmet-need" key={need.id}>
+                        <span className="unmet-label">
+                          <CircleHelp size={13} /> STILL NEEDED
+                        </span>
+                        {group.needs.length > 1 && <h3>{need.label}</h3>}
+                        <p>{need.unmetReason}</p>
+                        {need.options.length > 0 && (
+                          <div>
+                            <p>
+                              Available candidates · not included in this plan
+                              or its totals.
+                            </p>
+                            {need.options.map((resource) => (
+                              <ResourceCard
+                                key={resource.id}
+                                resource={resource}
+                                needLabel={need.label}
+                                variant="candidate"
+                              />
+                            ))}
+                          </div>
+                        )}
+                        {need.rationale && (
+                          <p className="unmet-rationale">{need.rationale}</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </article>
+              ))}
+            </Reveal>
           </div>
           <div className="plan-agent-note">
             <OttoAgent state={complete ? "success" : "idle"} compact />

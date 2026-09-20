@@ -8,6 +8,7 @@ import {
   X,
 } from "lucide-react";
 import type { ExperienceCopy } from "@/lib/types";
+import { Reveal } from "./Reveal";
 
 /** What the mic is doing right now, in words, for people who can see it. */
 const VOICE_STATUS: Record<string, string> = {
@@ -65,118 +66,120 @@ export function MissionInput({
   }
 
   return (
-    <section className="mission-screen stagger">
-      <div className="eyebrow">
-        <span className="tiny-star">✳</span> A LITTLE RESOURCEFULNESS GOES A
-        LONG WAY
-      </div>
-      <h1>
-        What are you trying
-        <br />
-        to <em>accomplish?</em>
-      </h1>
-      <p className="lead">
-        Tell Otto the goal. We’ll figure out what you actually need.
-      </p>
-      <form
-        className="mission-composer"
-        onSubmit={(e) => {
-          e.preventDefault();
-          onSubmit();
-        }}
-      >
-        <label className="sr-only" htmlFor="mission">
-          Your mission
-        </label>
-        <textarea
-          id="mission"
-          value={input}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={copy.placeholder}
-          maxLength={2000}
-          required
-          onKeyDown={(e) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-              e.preventDefault();
-              if (input.trim()) onSubmit();
-            }
+    <section className="mission-screen">
+      <Reveal>
+        <div className="eyebrow">
+          <span className="tiny-star">✳</span> A LITTLE RESOURCEFULNESS GOES A
+          LONG WAY
+        </div>
+        <h1>
+          What are you trying
+          <br />
+          to <em>accomplish?</em>
+        </h1>
+        <p className="lead">
+          Tell Otto the goal. We’ll figure out what you actually need.
+        </p>
+        <form
+          className="mission-composer"
+          onSubmit={(e) => {
+            e.preventDefault();
+            onSubmit();
           }}
-        />
-        {image && (
-          <div className="attachment">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={image.url} alt="" />
-            <span>{image.name}</span>
+        >
+          <label className="sr-only" htmlFor="mission">
+            Your mission
+          </label>
+          <textarea
+            id="mission"
+            value={input}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={copy.placeholder}
+            maxLength={2000}
+            required
+            onKeyDown={(e) => {
+              if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                e.preventDefault();
+                if (input.trim()) onSubmit();
+              }
+            }}
+          />
+          {image && (
+            <div className="attachment">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={image.url} alt="" />
+              <span>{image.name}</span>
+              <button
+                type="button"
+                onClick={detach}
+                aria-label={`Remove ${image.name}`}
+              >
+                <X size={13} />
+              </button>
+            </div>
+          )}
+          <div className="composer-bottom">
+            {onVoice && (
+              <button
+                type="button"
+                className={`voice-button voice-${voiceState}`}
+                onClick={onVoice}
+                aria-label={voiceLabel}
+                aria-pressed={voiceState === "recording"}
+                title={voiceLabel}
+                disabled={voiceState === "transcribing"}
+              >
+                <Mic size={19} />
+              </button>
+            )}
+            <input
+              ref={fileRef}
+              id="mission-image"
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={(e) => attach(e.target.files?.[0])}
+            />
             <button
               type="button"
-              onClick={detach}
-              aria-label={`Remove ${image.name}`}
+              className="voice-button"
+              onClick={() => fileRef.current?.click()}
+              aria-label="Add a photo"
+              title="Add a photo"
             >
-              <X size={13} />
+              <ImagePlus size={18} />
+            </button>
+            {status ? (
+              <span className="voice-status" role="status" aria-live="polite">
+                <i aria-hidden="true" /> {status}
+              </span>
+            ) : (
+              <span className="input-hint">
+                <CornerDownLeft size={12} /> ⌘ / Ctrl + Enter
+              </span>
+            )}
+            <button
+              className="button primary"
+              type="submit"
+              disabled={busy || !input.trim()}
+            >
+              {busy ? "Understanding your mission…" : "Let Otto figure it out"}
+              <ArrowUpRight size={18} />
             </button>
           </div>
-        )}
-        <div className="composer-bottom">
-          {onVoice && (
-            <button
-              type="button"
-              className={`voice-button voice-${voiceState}`}
-              onClick={onVoice}
-              aria-label={voiceLabel}
-              aria-pressed={voiceState === "recording"}
-              title={voiceLabel}
-              disabled={voiceState === "transcribing"}
-            >
-              <Mic size={19} />
+        </form>
+        <div className="example-row">
+          {onTalk && (
+            <button className="talk-button" onClick={onTalk}>
+              <Mic size={13} /> Talk to Otto
             </button>
           )}
-          <input
-            ref={fileRef}
-            id="mission-image"
-            type="file"
-            accept="image/*"
-            className="sr-only"
-            onChange={(e) => attach(e.target.files?.[0])}
-          />
-          <button
-            type="button"
-            className="voice-button"
-            onClick={() => fileRef.current?.click()}
-            aria-label="Add a photo"
-            title="Add a photo"
-          >
-            <ImagePlus size={18} />
-          </button>
-          {status ? (
-            <span className="voice-status" role="status" aria-live="polite">
-              <i aria-hidden="true" /> {status}
-            </span>
-          ) : (
-            <span className="input-hint">
-              <CornerDownLeft size={12} /> ⌘ / Ctrl + Enter
-            </span>
-          )}
-          <button
-            className="button primary"
-            type="submit"
-            disabled={busy || !input.trim()}
-          >
-            {busy ? "Understanding your mission…" : "Let Otto figure it out"}
-            <ArrowUpRight size={18} />
+          <button onClick={() => onChange(exampleInput)}>
+            {copy.exampleLabel} <MoveUpRight size={13} />
           </button>
         </div>
-      </form>
-      <div className="example-row">
-        {onTalk && (
-          <button className="talk-button" onClick={onTalk}>
-            <Mic size={13} /> Talk to Otto
-          </button>
-        )}
-        <button onClick={() => onChange(exampleInput)}>
-          {copy.exampleLabel} <MoveUpRight size={13} />
-        </button>
-      </div>
-      {copy.disclosure && <p className="demo-note">{copy.disclosure}</p>}
+        {copy.disclosure && <p className="demo-note">{copy.disclosure}</p>}
+      </Reveal>
     </section>
   );
 }

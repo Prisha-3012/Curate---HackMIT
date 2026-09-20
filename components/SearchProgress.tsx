@@ -2,6 +2,7 @@ import { Check, ArrowDown, Package } from "lucide-react";
 import type { Resource, SearchSource } from "@/lib/types";
 import { OttoAgent } from "./OttoAgent";
 import { ResourceCard } from "./ResourceCard";
+import { Reveal } from "./Reveal";
 export function SearchProgress({
   activeIndex,
   candidates,
@@ -23,77 +24,81 @@ export function SearchProgress({
   );
   return (
     <section className="search-screen">
-      <div className="section-intro stagger">
-        <span className="eyebrow">02 / SEARCHING</span>
-        <h1>Checking what already exists</h1>
-        <p className="lead" aria-live="polite">
-          {active ? (
-            <>
-              Looking through <em>{active.label}</em>
-            </>
-          ) : (
-            "Every rung checked."
-          )}
-        </p>
+      <div className="section-intro">
+        <Reveal>
+          <span className="eyebrow">02 / SEARCHING</span>
+          <h1>Checking what already exists</h1>
+          <p className="lead" aria-live="polite">
+            {active ? (
+              <>
+                Looking through <em>{active.label}</em>
+              </>
+            ) : (
+              "Every rung checked."
+            )}
+          </p>
+        </Reveal>
       </div>
       <div className="search-layout">
         <ol
           className="resolution-ladder"
           aria-label="Resource search hierarchy"
         >
-          {sources.map((source, index) => {
-            const done = index < activeIndex;
-            const active = index === activeIndex;
-            const matches = candidates.filter((resource) =>
-              source.sources.includes(resource.source),
-            );
-            return (
-              <li
-                key={source.id}
-                className={`ladder-step ${done ? "complete" : ""} ${active ? "active" : ""} ${index > activeIndex ? "pending" : ""}`}
-                aria-current={active ? "step" : undefined}
-              >
-                <div className="ladder-rail">
-                  <span className="ladder-icon">
-                    {done ? (
-                      <Check size={19} />
-                    ) : (
-                      <span className="rung-number">
-                        {String(index + 1).padStart(2, "0")}
+          <Reveal>
+            {sources.map((source, index) => {
+              const done = index < activeIndex;
+              const active = index === activeIndex;
+              const matches = candidates.filter((resource) =>
+                source.sources.includes(resource.source),
+              );
+              return (
+                <li
+                  key={source.id}
+                  className={`ladder-step ${done ? "complete" : ""} ${active ? "active" : ""} ${index > activeIndex ? "pending" : ""}`}
+                  aria-current={active ? "step" : undefined}
+                >
+                  <div className="ladder-rail">
+                    <span className="ladder-icon">
+                      {done ? (
+                        <Check size={19} />
+                      ) : (
+                        <span className="rung-number">
+                          {String(index + 1).padStart(2, "0")}
+                        </span>
+                      )}
+                    </span>
+                    {index < sources.length - 1 && (
+                      <span className="rail-line">
+                        <ArrowDown size={13} />
                       </span>
                     )}
-                  </span>
-                  {index < sources.length - 1 && (
-                    <span className="rail-line">
-                      <ArrowDown size={13} />
-                    </span>
-                  )}
-                </div>
-                <div className="ladder-content">
-                  <div className="ladder-title">
-                    <span>{source.label}</span>
-                    <small>
-                      {done
-                        ? `${matches.length} ${matches.length === 1 ? "match" : "matches"}`
-                        : active
-                          ? reviewing
-                            ? "REVIEWING"
-                            : "EXPLORING"
-                          : source.sources.includes("new")
-                            ? "ONLY IF NEEDED"
-                            : "UP NEXT"}
-                    </small>
                   </div>
-                  <p>
-                    {done
-                      ? `${source.checked !== undefined ? `${source.checked} resources checked · ` : ""}${matches.length} ${matches.length === 1 ? "option" : "options"} in the resource pool`
-                      : source.subtitle}
-                  </p>
-                </div>
-                {active && <OttoAgent state="searching" compact />}
-              </li>
-            );
-          })}
+                  <div className="ladder-content">
+                    <div className="ladder-title">
+                      <span>{source.label}</span>
+                      <small>
+                        {done
+                          ? `${matches.length} ${matches.length === 1 ? "match" : "matches"}`
+                          : active
+                            ? reviewing
+                              ? "REVIEWING"
+                              : "EXPLORING"
+                            : source.sources.includes("new")
+                              ? "ONLY IF NEEDED"
+                              : "UP NEXT"}
+                      </small>
+                    </div>
+                    <p>
+                      {done
+                        ? `${source.checked !== undefined ? `${source.checked} resources checked · ` : ""}${matches.length} ${matches.length === 1 ? "option" : "options"} in the resource pool`
+                        : source.subtitle}
+                    </p>
+                  </div>
+                  {active && <OttoAgent state="searching" compact />}
+                </li>
+              );
+            })}
+          </Reveal>
         </ol>
         <div className="resource-pool">
           <div className="pool-heading">
