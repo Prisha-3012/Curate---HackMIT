@@ -60,6 +60,17 @@ export function ResourceCard({
             {percent(resource.matchScore)} match
           </span>
         )}
+        {resource.productUrl &&
+          (resource.source === "used" || resource.source === "new") && (
+            <a
+              className="product-link"
+              href={resource.productUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              View product →
+            </a>
+          )}
         {variant !== "scouting" && resource.needsFitcheck && (
           <span className="fitcheck-note">
             <Ruler size={11} /> Fit check needed

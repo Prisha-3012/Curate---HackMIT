@@ -9,7 +9,7 @@
  * Keep synchronized with the backend schema; validate wire data before mapping.
  */
 
-/** The ladder, in the order the resolver walks it. Exactly four rungs. */
+/** The ladder, in the order the resolver walks it. */
 export type Rung = "OWN" | "BORROW" | "USED" | "NEW";
 
 /** One way to satisfy a need, on one rung. */
@@ -24,6 +24,7 @@ export interface PlanOption {
   /** Cents. What it costs new — the savings baseline. */
   retail_cents: number;
   image_url?: string | null;
+  product_url?: string | null;
   /** 0..1. */
   match_score: number;
   /** One sentence, shown verbatim next to the price. */

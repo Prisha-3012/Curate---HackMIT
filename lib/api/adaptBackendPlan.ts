@@ -12,14 +12,14 @@ const sourceByRung: Record<Rung, ResourceSource> = {
   USED: "used",
   NEW: "new",
 };
-export const backendSources: SearchSource[] = Object.entries(sourceByRung).map(
-  ([rung, source]) => ({
-    id: rung,
-    label: rung,
-    sources: [source],
-    subtitle: `Reviewing returned ${rung.toLowerCase()} options`,
-  }),
-);
+const activeRungs: Rung[] = ["OWN", "USED", "NEW"];
+
+export const backendSources: SearchSource[] = activeRungs.map((rung) => ({
+  id: rung,
+  label: rung,
+  sources: [sourceByRung[rung]],
+  subtitle: `Reviewing returned ${rung.toLowerCase()} options`,
+}));
 export const backendCopy: ExperienceCopy = {
   exampleLabel: "A goal to get started",
   placeholder: "Describe your goal. Add a dollar budget if you have one…",
@@ -57,6 +57,7 @@ export function adaptBackendPlan(
       retailPrice: dollars(option.retail_cents),
       ownerName: option.owner_label,
       image: option.image_url ?? undefined,
+      productUrl: option.product_url ?? undefined,
       matchScore: option.match_score,
       description: option.why,
       needsFitcheck: option.needs_fitcheck,

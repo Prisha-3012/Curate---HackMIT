@@ -9,6 +9,7 @@ import { createEnoughApi, parseBudgetCents } from "../lib/services/enoughApi";
 import type { Plan } from "../lib/api/plan";
 import { EnoughPlan } from "../components/EnoughPlan";
 import { OptimizationView } from "../components/OptimizationView";
+import { ResourceCard } from "../components/ResourceCard";
 Object.assign(
   createRequire(`${process.cwd()}/package.json`)("playwright/jsx-runtime"),
   jsx,
@@ -49,6 +50,7 @@ const plan = (): Plan => ({
           why: "New alternative",
           needs_fitcheck: true,
           image_url: null,
+          product_url: "https://shop.example/new-plates",
         },
       ],
     },
@@ -81,9 +83,11 @@ test("fully solved: ordered options, earlier BORROW wins, explicit conversion an
   expect(e.plan.retailEquivalent).toBe(12.99);
   expect(e.mission.needs[0].options[1].price).toBe(14.99);
   expect(e.mission.needs[0].options[1].needsFitcheck).toBe(true);
+  expect(e.mission.needs[0].options[1].productUrl).toBe(
+    "https://shop.example/new-plates",
+  );
   expect(e.sources.map((s) => s.label)).toEqual([
     "OWN",
-    "BORROW",
     "USED",
     "NEW",
   ]);
@@ -97,6 +101,37 @@ test("fully solved: ordered options, earlier BORROW wins, explicit conversion an
       .provenance,
   ).toBe("backend-demo");
   expect(p).toEqual(plan());
+});
+test("product links validate, map, and render only for used/new resources", () => {
+  const p = plan();
+  p.needs[0].options[0].product_url = "https://market.example/plates";
+  const experience = adaptBackendPlan(validatePlan(p), "goal");
+  expect(experience.mission.needs[0].options[0].productUrl).toBe(
+    "https://market.example/plates",
+  );
+
+  const usedMarkup = renderToStaticMarkup(
+    createElement(ResourceCard, {
+      resource: {
+        ...experience.mission.needs[0].options[0],
+        source: "used" as const,
+      },
+      variant: "candidate",
+    }),
+  );
+  expect(usedMarkup).toContain("View product →");
+  expect(usedMarkup).toContain('target="_blank"');
+  expect(usedMarkup).toContain('rel="noopener noreferrer"');
+
+  const own = {
+    ...experience.mission.needs[0].options[0],
+    source: "owned" as const,
+    productUrl: "https://example.com/should-not-show",
+  };
+  const ownMarkup = renderToStaticMarkup(
+    createElement(ResourceCard, { resource: own }),
+  );
+  expect(ownMarkup).not.toContain("View product");
 });
 test("partial plan preserves empty and budget-unmet candidates without selection or costing", () => {
   const p = plan();

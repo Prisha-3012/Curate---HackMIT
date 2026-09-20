@@ -1668,6 +1668,15 @@ main {
   color: var(--moss);
   margin-top: 9px;
 }
+.product-link {
+  display: inline-block;
+  margin-top: 10px;
+  color: var(--moss);
+  font-size: 10px;
+  line-height: 1.4;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 .selected-mark {
   font-size: 7px;
   letter-spacing: 0.6px;

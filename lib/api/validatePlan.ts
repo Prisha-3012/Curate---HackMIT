@@ -43,6 +43,7 @@ export function validatePlan(value: unknown): Plan {
       cents(o.price_cents);
       cents(o.retail_cents);
       if (o.image_url != null) string(o.image_url);
+      if (o.product_url != null) string(o.product_url);
       if (
         typeof o.match_score !== "number" ||
         !Number.isFinite(o.match_score) ||

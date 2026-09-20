@@ -31,6 +31,7 @@ export interface Resource {
   ownerName?: string;
   condition?: string;
   image?: string;
+  productUrl?: string;
   imageAlt?: string;
   visual?: VisualMotif;
   matchScore?: number;
