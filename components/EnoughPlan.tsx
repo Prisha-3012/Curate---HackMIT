@@ -31,7 +31,7 @@ export function EnoughPlan({
   ];
   return (
     <section className="plan-screen enter">
-      {experience.provenance !== "local-fixture" && (
+      {experience.provenance !== "local-fixture" && copy.disclosure && (
         <p className="demo-note">{copy.disclosure}</p>
       )}
       <div className="plan-intro">
@@ -145,8 +145,12 @@ export function EnoughPlan({
                     ? "The resources fit. The budget still needs work."
                     : "A useful start. The unmatched needs still matter."}
               </strong>
-              <br />
-              {copy.planNote}
+              {copy.planNote && (
+                <>
+                  <br />
+                  {copy.planNote}
+                </>
+              )}
             </p>
           </div>
         </div>

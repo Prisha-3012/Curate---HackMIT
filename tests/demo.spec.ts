@@ -38,7 +38,7 @@ for (const fixture of fixtures) {
       await expect(page.locator(".constraint-grid")).not.toContainText(
         "Location",
       );
-    await page.getByRole("button", { name: "Find a better way" }).click();
+    await page.getByRole("button", { name: "Next" }).click();
     await expect(page.locator(".ladder-title>span")).toHaveText(
       fixture.sources.map((source) => source.label),
     );
@@ -164,7 +164,7 @@ test("failed image becomes a stable physical tag, including after reset", async 
   await expect(visual).toHaveAttribute("data-visual-kind", "beam");
   await expect(visual.locator("img")).toHaveCount(0);
   const key = await visual.getAttribute("data-visual-key");
-  await page.getByRole("button", { name: "Reset demo" }).click();
+  await page.getByRole("button", { name: "New mission" }).click();
   await controls.getByRole("button", { name: "plan", exact: true }).click();
   await expect(visual).toHaveAttribute("data-visual-kind", "beam");
   await expect(visual).toHaveAttribute("data-visual-key", key!);
@@ -176,8 +176,8 @@ test("reset and fixture change invalidate an outstanding reveal", async ({
   await page.goto("/?demoControls=true");
   await page.getByRole("button", { name: "Set up my room under $500" }).click();
   await page.getByRole("button", { name: "Let Otto figure it out" }).click();
-  await page.getByRole("button", { name: "Find a better way" }).click();
-  await page.getByRole("button", { name: "Reset demo" }).click();
+  await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("button", { name: "New mission" }).click();
   await expect(page.getByRole("textbox", { name: "Your mission" })).toHaveValue(
     /moving to Boston/,
   );

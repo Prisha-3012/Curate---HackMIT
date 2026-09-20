@@ -30,8 +30,8 @@ export function MissionSummary({
     );
   const { mission, copy } = experience;
   return (
-    <section className="understanding-screen enter">
-      <div className="section-intro">
+    <section className="understanding-screen">
+      <div className="section-intro stagger">
         <span className="eyebrow">01 / YOUR MISSION, UNDERSTOOD</span>
         <h1>{mission.title}</h1>
         <p className="lead">{copy.summary}</p>
@@ -99,24 +99,16 @@ export function MissionSummary({
         </div>
       </div>
       <div className="understanding-footer">
-        <div className="agent-caption">
-          <OttoAgent state="success" compact />
-          <p>
-            Before buying anything,
-            <br />
-            <strong>let’s see what already exists.</strong>
-          </p>
-        </div>
         <div className="actions">
           <button className="text-button" onClick={onEdit}>
             Edit my mission
           </button>
           <button className="button primary" onClick={onContinue}>
-            Find a better way <ArrowRight size={17} />
+            Next <ArrowRight size={17} />
           </button>
         </div>
       </div>
-      <p className="demo-note">{copy.disclosure}</p>
+      {copy.disclosure && <p className="demo-note">{copy.disclosure}</p>}
     </section>
   );
 }

@@ -14,8 +14,8 @@ export function OptimizationView({
 }) {
   const chosen = need && selectedOption(need);
   return (
-    <section className="optimization-screen enter">
-      <div className="optimization-intro">
+    <section className="optimization-screen">
+      <div className="optimization-intro stagger">
         <OttoAgent state="optimizing" />
         <span className="eyebrow">03 / MAKING THE PIECES FIT</span>
         <h1>

@@ -23,14 +23,15 @@ export const backendSources: SearchSource[] = Object.entries(sourceByRung).map(
 export const backendCopy: ExperienceCopy = {
   exampleLabel: "A goal to get started",
   placeholder: "Describe your goal. Add a dollar budget if you have one…",
-  disclosure:
-    "One plan request. The following stages reveal the returned plan.",
-  summary: "Review the needs returned for your goal.",
+  // Empty: the live path is the demo, and users do not need our internals.
+  // The one disclosure that survives is the backend-fixture case below, which
+  // exists to stop seeded needs being read as an answer to the user's goal.
+  disclosure: "",
+  summary: "Here is what your goal breaks down into.",
   planCollectionLabel: "RESOURCES FOR YOUR GOAL",
-  planNote: "Recommendations and impact estimates are supplied by the backend.",
+  planNote: "",
   completion: "Your returned plan, ready to review.",
-  optimizationCriteria:
-    "Provider order is preserved. A higher match score does not override the resource ladder.",
+  optimizationCriteria: "",
 };
 const dollars = (cents: number) => cents / 100;
 
@@ -72,8 +73,8 @@ export function adaptBackendPlan(
   });
   const isFixture = plan.source === "fixture";
   const disclosure = isFixture
-    ? `Backend fixture/demo data${backendFixture ? ` (${backendFixture})` : ""}. These seeded needs are not an arbitrary-goal result and may not describe your request. Stages reveal the returned sample plan.`
-    : "Backend-generated plan. These stages reveal one returned result, not separate backend searches.";
+    ? `Backend fixture/demo data${backendFixture ? ` (${backendFixture})` : ""} — seeded sample needs, not a result for your goal.`
+    : "";
   return {
     mission: {
       id: plan.mission_id,

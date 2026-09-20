@@ -231,8 +231,7 @@ export const bostonFixture: DemoFixture = {
     exampleLabel: "Set up my room under $500",
     placeholder:
       "I’m moving to Boston for 3 months. I have $500 and basically nothing…",
-    disclosure:
-      "LOCAL DEMO · Boston room setup · Prewritten sample, not generated from your text",
+    disclosure: "",
     summary: "A temporary home. Everything you need to settle in.",
     planCollectionLabel: "A ROOM, RESOURCEFULLY PUT TOGETHER",
     planNote:

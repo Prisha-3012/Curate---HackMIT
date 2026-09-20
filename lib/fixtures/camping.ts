@@ -154,8 +154,7 @@ export const campingFixture: DemoFixture = {
     exampleLabel: "Prepare for camping under $60",
     placeholder:
       "I’m heading outdoors. Help me get ready with what already exists…",
-    disclosure:
-      "LOCAL UI TEST FIXTURE · Hand-authored camping example · Not AI-generated",
+    disclosure: "",
     summary: "A few good resources. A little more time outside.",
     planCollectionLabel: "A LITTLE MORE READY FOR THE OUTDOORS",
     planNote:
