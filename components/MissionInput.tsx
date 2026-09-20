@@ -10,6 +10,7 @@ import {
 import type { ExperienceCopy } from "@/lib/types";
 import type { ReactNode } from "react";
 import { OttoAgent } from "./OttoAgent";
+import { FluidShapes } from "./FluidShapes";
 import { Reveal } from "./Reveal";
 
 /** What the mic is doing right now, in words, for people who can see it. */
@@ -71,6 +72,7 @@ export function MissionInput({
 
   return (
     <section className="mission-screen">
+      <FluidShapes />
       <Reveal>
         <div className="eyebrow">
           <span className="tiny-star">✳</span> A LITTLE RESOURCEFULNESS GOES A
@@ -82,7 +84,9 @@ export function MissionInput({
           to <em>accomplish?</em>
         </h1>
         <p className="lead">
-          Tell Otto the goal. We’ll figure out what you actually need.
+          Say what you want to pull off, plus anything that limits it — a
+          budget, a date, a place. Otto works out what that actually requires,
+          then looks for each piece before suggesting you buy it.
         </p>
         <form
           className="mission-composer"
@@ -172,6 +176,10 @@ export function MissionInput({
             </button>
           </div>
         </form>
+        <p className="mission-hint">
+          Try something like <em>“business casual for my internship, about
+          $150”</em> or <em>“camping next weekend, I have $60”</em>.
+        </p>
         <div className="example-row">
           {onTalk && (
             <button className="talk-button" onClick={onTalk}>

@@ -1,10 +1,34 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
 
 /**
  * Drives the spoken front door against a REAL backend on :8000 with
  * DEMO_MODE=off. Audio playback is stubbed — headless Chrome has no speakers
  * and /api/voice/speak is already covered server side.
  */
+/**
+ * Otto decides how many questions to ask, and with a live model that is not
+ * fixed — sometimes one answer is enough. Wait for whichever comes first: the
+ * next question, or the handoff to the plan.
+ */
+async function waitForTurn(
+  answer: Locator,
+  next: Locator,
+): Promise<"asking" | "ready"> {
+  let state: "asking" | "ready" | "busy" = "busy";
+  await expect
+    .poll(
+      async () => {
+        if (await next.isVisible()) return (state = "ready");
+        if ((await answer.isVisible()) && (await answer.isEnabled()))
+          return (state = "asking");
+        return "busy";
+      },
+      { timeout: 40000 },
+    )
+    .not.toBe("busy");
+  return state as "asking" | "ready";
+}
+
 async function silenceOtto(page: Page) {
   await page.route("**/api/voice/speak", (route) =>
     route.fulfill({ status: 200, contentType: "audio/mpeg", body: "" }),
@@ -27,19 +51,21 @@ test("a typed conversation reaches a real plan", async ({ page, request }) => {
   await expect(log).toContainText(/\?/, { timeout: 20000 });
 
   const answer = page.getByLabel("Your answer", { exact: true });
-  await answer.fill("business casual for my internship");
-  await page.getByRole("button", { name: /^send/i }).click();
+  const send = page.getByRole("button", { name: /^send/i });
+  const next = page.getByRole("button", { name: /^next$/i });
 
-  // Second turn: whatever Otto asks, answering with a budget must finish.
-  await expect(answer).toBeVisible({ timeout: 20000 });
-  await answer.fill("about one hundred dollars");
-  await page.getByRole("button", { name: /^send/i }).click();
+  for (const reply of [
+    "business casual for my internship",
+    "about one hundred dollars",
+  ]) {
+    if ((await waitForTurn(answer, next)) === "ready") break;
+    await answer.fill(reply);
+    await send.click();
+  }
 
   // Conversation hands off to /api/mission and the plan renders.
-  await expect(
-    page.getByRole("button", { name: /^next$/i }),
-  ).toBeVisible({ timeout: 40000 });
-  await page.getByRole("button", { name: /^next$/i }).click();
+  await expect(next).toBeVisible({ timeout: 40000 });
+  await next.click();
   await expect(page.getByText(/here.s your/i)).toBeVisible({ timeout: 40000 });
 
   const body = await page.locator("body").innerText();
