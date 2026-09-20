@@ -17,6 +17,7 @@ from apps.api.services.resolver import (
     resolve_need,
     score_listing,
 )
+from apps.api.services.products import normalize_result
 
 
 @pytest.fixture(scope="module")
@@ -75,6 +76,59 @@ def test_a_need_with_no_attrs_is_satisfied_by_anything():
 
 def test_missing_key_counts_as_a_miss_not_a_crash():
     assert attribute_overlap({"warmth": "medium"}, {"color": "navy"}) == 0.0
+
+
+def test_live_result_for_need_survives_resolution(users):
+    need = {
+        "id": "live-need",
+        "label": "a business-casual layer",
+        "category": "outerwear",
+        "attrs": {"formality": "business-casual", "warmth": "medium"},
+    }
+    live = normalize_result(
+        {
+            "title": "Navy blazer",
+            "url": "https://retailer.example/products/navy-blazer",
+            "content": "$89",
+        },
+        category=need["category"],
+        need_attrs=need["attrs"],
+    )
+
+    options, recommended, reason = resolve_need(
+        need, [live], users=users, viewer_id=DEMO_USER, prefs={}
+    )
+
+    assert reason is None
+    assert recommended == live["id"]
+    assert [option.listing_id for option in options] == [live["id"]]
+
+
+def test_unrelated_same_category_listing_is_still_rejected(users):
+    need = {
+        "id": "live-need",
+        "label": "a business-casual layer",
+        "category": "outerwear",
+        "attrs": {"formality": "business-casual", "warmth": "medium"},
+    }
+    unrelated = {
+        "id": "neon-layer",
+        "title": "Neon windbreaker",
+        "category": "outerwear",
+        "rung": "NEW",
+        "owner_id": None,
+        "price_cents": 5000,
+        "retail_cents": 8000,
+        "attrs": {"formality": "athletic", "warmth": "light"},
+    }
+
+    options, recommended, reason = resolve_need(
+        need, [unrelated], users=users, viewer_id=DEMO_USER, prefs={}
+    )
+
+    assert options == []
+    assert recommended is None
+    assert reason
 
 
 # --- taste nudges but never vetoes -----------------------------------------

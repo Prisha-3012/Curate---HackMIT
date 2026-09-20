@@ -41,7 +41,13 @@ def _price_cents(result: dict[str, Any]) -> int | None:
     return round(float(match.group(1)) * 100) if match else None
 
 
-def normalize_result(result: Any, *, category: str, provider: str = "tavily") -> dict[str, Any] | None:
+def normalize_result(
+    result: Any,
+    *,
+    category: str,
+    provider: str = "tavily",
+    need_attrs: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
     """Convert one provider result into a resolver listing, or reject it."""
     if not isinstance(result, dict):
         return None
@@ -55,6 +61,8 @@ def normalize_result(result: Any, *, category: str, provider: str = "tavily") ->
     listing_id = "live-" + hashlib.sha256(f"{provider}:{external_id}".encode()).hexdigest()[:24]
     text = " ".join(str(result.get(key) or "") for key in ("title", "content", "raw_content"))
     rung = "USED" if USED_RE.search(text) else "NEW"
+    result_attrs = result.get("attrs")
+    attrs = result_attrs if isinstance(result_attrs, dict) and result_attrs else dict(need_attrs or {})
     return {
         "id": listing_id,
         "title": title,
@@ -70,7 +78,7 @@ def normalize_result(result: Any, *, category: str, provider: str = "tavily") ->
         "product_url": url,
         "provider": provider,
         "external_id": external_id,
-        "attrs": result.get("attrs") if isinstance(result.get("attrs"), dict) else {},
+        "attrs": attrs,
     }
 
 
@@ -114,7 +122,11 @@ def fetch_products(goal_text: str, needs: Iterable[dict[str, Any]]) -> list[dict
     for need in needs:
         category = str(need.get("category") or "other").strip().lower()
         for result in _request(_query(goal_text, need)):
-            row = normalize_result(result, category=category)
+            row = normalize_result(
+                result,
+                category=category,
+                need_attrs=need.get("attrs") if isinstance(need.get("attrs"), dict) else None,
+            )
             if row is None or row["product_url"] in seen:
                 continue
             seen.add(row["product_url"])
