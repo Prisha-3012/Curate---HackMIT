@@ -21,146 +21,128 @@
    app/layout.tsx applies a stored preference before first paint. Light is
    opt-in via [data-theme="light"]. */
 
+/* --- palette ---------------------------------------------------------------
+   Eight primitives per theme. Everything else in this file is derived from
+   them with color-mix, so there is exactly one place to change a colour.
+
+   `--new` is the only warm value and it marks one thing: the NEW rung, the
+   bottom of the ladder. The one other place it appears is the unmet-need
+   state, because the palette supplies no error colour and that state has to
+   read as "this will cost you something". */
+
 :root {
   color-scheme: dark;
 
-  --paper: #0f1411;
-  --surface: #171d19;
-  --surface-soft: #1d2520;
-  --ink: #e8ece5;
-  --muted: #99a29a;
-  --faint: #6f7d72;
-  --moss: #9dc3a8;
-  --moss-strong: #b6d6bf;
-  --on-accent: #0f1411;
-  --line: #2a332c;
-  --line-strong: #36423a;
-  --line-dashed: #3d4a40;
-  --sage: #294b39;
-  --sage-ink: #cfe9d8;
-  --sage-line: #3a5f49;
-  --alert: #e0906f;
-  --alert-soft: #35201a;
-  --focus-ring: #8fb79c;
-  --select-bg: #2d4a39;
-  --skeleton: #232b25;
-  --notice-bg: #1b231e;
-  --error-bg: #2a201a;
+  --ground: #14171e;
+  --surface: #1c212b;
+  --ink: #e8e7e2;
+  --muted: #939aa8;
+  --line: #2a3040;
+  --accent: #8fa2d8;
+  --soft: #5a6894;
+  --new: #d9a055;
 
-  /* the savings panel is an inverted surface in light, a raised one in dark */
-  --panel-bg: #1e3227;
-  --panel-ink: #eaf1e9;
-  --panel-soft: #b6c9ba;
-  --panel-dim: #8ba393;
-  --panel-line: #36543f;
-  --panel-track: #2e4738;
-  --panel-fill: #a8d3b4;
-  --panel-warn: #e8b088;
-  --badge-pct-bg: #9dc3a8;
-  --badge-pct-ink: #12201a;
-
-  /* source badges */
-  --badge-bg: #222c25;
-  --badge-line: #35423a;
-  --badge-new-bg: #2e2820;
-  --badge-new-line: #443a2a;
-  --badge-new-ink: #cbb48c;
-  --badge-own-bg: #23352a;
-  --badge-own-line: #35503e;
-  --badge-rent-bg: #262b27;
-  --badge-rent-ink: #9aa39b;
-
-  /* generated resource artwork */
-  --visual-bg: #242a22;
-  --visual-ink: #9fb096;
-  --visual-1-bg: #2b2620;
-  --visual-1-ink: #c0a87e;
-  --visual-2-bg: #232a26;
-  --visual-2-ink: #94ab97;
-  --tag-bg: #1b211c;
-  --tag-line: #333c34;
-  --tag-ink: #9aa89c;
-  --tag-punch-bg: #2a332b;
-  --tag-punch-line: #3c473e;
+  /* the savings panel is a raised slab in dark, an inverted one in light */
+  --panel-bg: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  --panel-ink: var(--ink);
+  --panel-soft: var(--muted);
+  --panel-dim: color-mix(in srgb, var(--muted) 72%, var(--surface));
+  --panel-line: color-mix(in srgb, var(--accent) 26%, var(--surface));
+  --panel-track: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  --panel-fill: var(--accent);
+  --badge-pct-bg: var(--accent);
+  --badge-pct-ink: var(--ground);
 
   --shadow-sm: 0 5px 18px #00000047;
   --shadow-md: 0 8px 24px #0000004f;
   --shadow-lg: 0 14px 34px #00000066;
   --shadow-hover: 0 12px 30px #00000059;
+}
 
-  --font-display: Iowan Old Style, Baskerville, Georgia, "Times New Roman", serif;
-  --font-body: "Avenir Next", Avenir, "Helvetica Neue", Arial, sans-serif;
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --ground: #f2f1ed;
+  --surface: #e9e8e3;
+  --ink: #1b1f2a;
+  --muted: #5e6470;
+  --line: #dcdad3;
+  --accent: #3a4a7a;
+  --soft: #8894b8;
+  --new: #b5762e;
+
+  --panel-bg: var(--ink);
+  --panel-ink: var(--ground);
+  --panel-soft: color-mix(in srgb, var(--soft) 82%, var(--ground));
+  --panel-dim: var(--soft);
+  --panel-line: color-mix(in srgb, var(--ink) 68%, var(--soft));
+  --panel-track: color-mix(in srgb, var(--ink) 58%, var(--soft));
+  --panel-fill: var(--soft);
+  --badge-pct-bg: var(--soft);
+  --badge-pct-ink: var(--ink);
+
+  --shadow-sm: 0 5px 18px #1b1f2a0f;
+  --shadow-md: 0 8px 24px #1b1f2a12;
+  --shadow-lg: 0 12px 30px #1b1f2a1f;
+  --shadow-hover: 0 10px 28px #1b1f2a1c;
+}
+
+/* --- derived ----------------------------------------------------------------
+   Named for what they do, resolved from the eight above. The older names are
+   kept so the rest of the file needs no edit: this is the token layer. */
+
+:root,
+:root[data-theme="light"] {
+  --paper: var(--ground);
+  --surface-soft: color-mix(in srgb, var(--surface) 55%, var(--ground));
+  --faint: var(--soft);
+  --moss: var(--accent);
+  --moss-strong: color-mix(in srgb, var(--accent) 78%, var(--ink));
+  --on-accent: var(--ground);
+  --line-strong: color-mix(in srgb, var(--line) 68%, var(--muted));
+  --line-dashed: color-mix(in srgb, var(--line) 55%, var(--muted));
+  --sage: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  --sage-ink: var(--accent);
+  --sage-line: color-mix(in srgb, var(--accent) 38%, var(--surface));
+  --alert: var(--new);
+  --alert-soft: color-mix(in srgb, var(--new) 13%, var(--surface));
+  --panel-warn: var(--new);
+  --focus-ring: var(--accent);
+  --select-bg: color-mix(in srgb, var(--accent) 24%, var(--ground));
+  --skeleton: color-mix(in srgb, var(--line) 72%, var(--surface));
+  --notice-bg: color-mix(in srgb, var(--surface) 72%, var(--ground));
+  --error-bg: color-mix(in srgb, var(--new) 9%, var(--surface));
+
+  --badge-bg: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  --badge-line: color-mix(in srgb, var(--accent) 26%, var(--surface));
+  --badge-own-bg: color-mix(in srgb, var(--accent) 17%, var(--surface));
+  --badge-own-line: color-mix(in srgb, var(--accent) 34%, var(--surface));
+  --badge-new-bg: color-mix(in srgb, var(--new) 14%, var(--surface));
+  --badge-new-line: color-mix(in srgb, var(--new) 32%, var(--surface));
+  --badge-new-ink: var(--new);
+  --badge-rent-bg: color-mix(in srgb, var(--muted) 12%, var(--surface));
+  --badge-rent-ink: var(--muted);
+
+  --visual-bg: color-mix(in srgb, var(--accent) 9%, var(--surface));
+  --visual-ink: var(--soft);
+  --visual-1-bg: color-mix(in srgb, var(--new) 9%, var(--surface));
+  --visual-1-ink: color-mix(in srgb, var(--new) 72%, var(--ink));
+  --visual-2-bg: color-mix(in srgb, var(--accent) 13%, var(--surface));
+  --visual-2-ink: var(--accent);
+  --tag-bg: var(--ground);
+  --tag-line: var(--line);
+  --tag-ink: var(--muted);
+  --tag-punch-bg: var(--line);
+  --tag-punch-line: color-mix(in srgb, var(--line) 55%, var(--muted));
+
+  --font-display: var(--font-serif), Georgia, "Times New Roman", serif;
+  --font-body: var(--font-sans), "Helvetica Neue", Arial, sans-serif;
 
   --dur-fast: 140ms;
   --dur-base: 240ms;
   --dur-slow: 420ms;
   --dur-theme: 260ms;
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-:root[data-theme="light"] {
-  color-scheme: light;
-
-  --paper: #fbf9f5;
-  --surface: #ffffff;
-  --surface-soft: #f3f4f0;
-  --ink: #1c2d27;
-  --muted: #68716c;
-  --faint: #8a9280;
-  --moss: #4b6456;
-  --moss-strong: #314d40;
-  --on-accent: #fafbf5;
-  --line: #d9ded9;
-  --line-strong: #d5d9ca;
-  --line-dashed: #c7ceb9;
-  --sage: #cae6d4;
-  --sage-ink: #29483a;
-  --sage-line: #a8c9b5;
-  --alert: #a94f36;
-  --alert-soft: #ffe0d6;
-  --focus-ring: #839875;
-  --select-bg: #dce5cf;
-  --skeleton: #e6e9dd;
-  --notice-bg: #eef0e6;
-  --error-bg: #f2e8dc;
-
-  --panel-bg: #1c2d27;
-  --panel-ink: #f4f6eb;
-  --panel-soft: #c4ceb9;
-  --panel-dim: #abb99d;
-  --panel-line: #50635b;
-  --panel-track: #52634a;
-  --panel-fill: #d9e5b8;
-  --panel-warn: #f1d3b1;
-  --badge-pct-bg: #cae6d4;
-  --badge-pct-ink: #29483a;
-
-  --badge-bg: #e9eddf;
-  --badge-line: #d6dccd;
-  --badge-new-bg: #f0e9de;
-  --badge-new-line: #e4d9c6;
-  --badge-new-ink: #776749;
-  --badge-own-bg: #dfe8d4;
-  --badge-own-line: #cfdcbe;
-  --badge-rent-bg: #eeeee6;
-  --badge-rent-ink: #737968;
-
-  --visual-bg: #eeeddf;
-  --visual-ink: #637157;
-  --visual-1-bg: #eee7da;
-  --visual-1-ink: #8a7757;
-  --visual-2-bg: #e6e9df;
-  --visual-2-ink: #586756;
-  --tag-bg: #fbfaf3;
-  --tag-line: #d7d8c7;
-  --tag-ink: #657059;
-  --tag-punch-bg: #e3e6d7;
-  --tag-punch-line: #c7ccb9;
-
-  --shadow-sm: 0 5px 18px #1c2d2709;
-  --shadow-md: 0 8px 24px #1c2d2709;
-  --shadow-lg: 0 12px 30px #1c2d2718;
-  --shadow-hover: 0 10px 28px #1c2d2714;
 }
 
 /* --- base ------------------------------------------------------------------ */
@@ -173,6 +155,8 @@ body {
   background: var(--paper);
   color: var(--ink);
   font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
   letter-spacing: 0;
   -webkit-font-smoothing: antialiased;
   transition:
@@ -224,8 +208,10 @@ h2 {
   font-weight: 400;
   letter-spacing: -0.025em;
 }
+/* One heading scale. Per-screen overrides were removed so headings do not
+   drift apart between stages. */
 h1 {
-  font-size: clamp(40px, 5.1vw, 68px);
+  font-size: clamp(2rem, 5vw, 3.5rem);
   line-height: 1.08;
 }
 h1 em {
@@ -429,7 +415,6 @@ main {
 }
 .section-intro h1 {
   margin-top: 17px;
-  font-size: clamp(36px, 4.3vw, 56px);
 }
 .section-intro .lead {
   margin-top: 12px;
@@ -582,7 +567,7 @@ main {
   background: var(--surface-soft);
   font-size: 11px;
   color: var(--muted);
-  animation: enter var(--dur-base) var(--ease-out) both;
+  animation: reveal var(--dur-base) var(--ease-out) both;
 }
 .attachment img {
   width: 34px;
@@ -836,9 +821,6 @@ main {
   justify-content: center;
   margin: 20px 0;
 }
-.loading-understanding h1 {
-  font-size: 44px;
-}
 .skeleton-lines {
   display: grid;
   gap: 14px;
@@ -890,27 +872,6 @@ main {
   margin: 0;
   padding: 8px 0 0;
 }
-/* The rungs arrive OWN -> BORROW -> USED -> NEW. That order is the whole
-   argument the product makes, so it is worth watching it happen rather than
-   finding it already there. */
-.resolution-ladder > li {
-  animation: enter 380ms var(--ease-out) both;
-}
-.resolution-ladder > li:nth-child(1) {
-  animation-delay: 60ms;
-}
-.resolution-ladder > li:nth-child(2) {
-  animation-delay: 140ms;
-}
-.resolution-ladder > li:nth-child(3) {
-  animation-delay: 220ms;
-}
-.resolution-ladder > li:nth-child(4) {
-  animation-delay: 300ms;
-}
-.resolution-ladder > li:nth-child(n + 5) {
-  animation-delay: 380ms;
-}
 .ladder-step {
   display: flex;
   gap: 18px;
@@ -952,12 +913,10 @@ main {
   box-shadow: 0 0 0 6px var(--sage);
   animation: rung-scan 1.5s ease-in-out infinite;
 }
-/* Plays once, when the class lands. Ring only — the icon never changes size. */
 .complete .ladder-icon {
   background: var(--sage);
   border-color: var(--sage-line);
   color: var(--sage-ink);
-  animation: rung-land 520ms var(--ease-out);
 }
 .rail-line {
   position: relative;
@@ -1023,6 +982,17 @@ main {
 .rung-number {
   font-size: 12px;
   letter-spacing: 1px;
+}
+/* NEW is always the last rung, in every fixture and in the backend ladder, so
+   it can be marked without the component knowing about colour. This is the one
+   warm accent on the page. */
+.resolution-ladder > li:last-child .ladder-icon {
+  border-color: color-mix(in srgb, var(--new) 45%, var(--surface));
+  color: var(--new);
+}
+.resolution-ladder > li:last-child .ladder-title span,
+.resolution-ladder > li:last-child .ladder-title small {
+  color: var(--new);
 }
 .resource-pool {
   border: 1px solid var(--line);
@@ -1118,9 +1088,6 @@ main {
   justify-content: center;
   margin: 13px 0 18px;
 }
-.optimization-intro h1 {
-  font-size: 52px;
-}
 .optimization-intro .lead {
   margin-top: 15px;
 }
@@ -1147,30 +1114,6 @@ main {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
   align-items: stretch;
   gap: 14px;
-}
-/* --i drives the stagger so the selected card can carry two animations with
-   two delays; setting animation-delay directly would clobber the second. */
-.candidate-grid > * {
-  --i: 0;
-  animation: enter 360ms var(--ease-out) both;
-  animation-delay: calc(var(--i) * 55ms);
-}
-/* Budget: the whole sequence must finish inside TIMING.optimize (1400ms) or
-   the stage advances mid-animation. Worst case is 275 + 420 + 600 = 1295ms. */
-.candidate-grid > *:nth-child(2) {
-  --i: 1;
-}
-.candidate-grid > *:nth-child(3) {
-  --i: 2;
-}
-.candidate-grid > *:nth-child(4) {
-  --i: 3;
-}
-.candidate-grid > *:nth-child(5) {
-  --i: 4;
-}
-.candidate-grid > *:nth-child(n + 6) {
-  --i: 5;
 }
 .candidate {
   border: 1px solid var(--line);
@@ -1205,12 +1148,11 @@ main {
   align-items: center;
   line-height: 1.5;
 }
-/* Must stay after `.candidate-grid > *` — equal specificity, later wins. */
+/* Selection is a state, not an entrance — the card already arrived via Reveal. */
 .candidate-selected {
-  animation:
-    enter 360ms var(--ease-out) both,
-    select-candidate 600ms both;
-  animation-delay: calc(var(--i) * 55ms), calc(var(--i) * 55ms + 420ms);
+  background: var(--sage);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
 }
 .selected-mark {
   position: absolute;
@@ -1227,7 +1169,7 @@ main {
   background: var(--ink);
   color: var(--on-accent);
   border-radius: 20px;
-  animation: enter 280ms 1s both;
+  animation: reveal 420ms 700ms both;
 }
 .optimization-arrow {
   margin: 29px auto 10px;
@@ -1310,7 +1252,6 @@ main {
   padding-bottom: 28px;
 }
 .plan-intro h1 {
-  font-size: clamp(36px, 4vw, 55px);
   margin-top: 16px;
 }
 .plan-intro h1 em {
@@ -1571,7 +1512,7 @@ main {
   padding: 25px 26px 22px;
   overflow: hidden;
   box-shadow: var(--shadow-lg);
-  animation: enter var(--dur-slow) 100ms both;
+  animation: reveal var(--dur-slow) 100ms both;
 }
 .savings-heading {
   display: flex;
@@ -1949,7 +1890,7 @@ main {
   max-width: 62ch;
   margin: 0;
   line-height: 1.5;
-  animation: enter var(--dur-base) var(--ease-out) both;
+  animation: reveal var(--dur-base) var(--ease-out) both;
 }
 .conversation-log .turn-user {
   align-self: flex-end;
@@ -2018,41 +1959,20 @@ main {
 
 /* --- keyframes ------------------------------------------------------------- */
 
+/* The single entrance primitive. `.enter` is the same animation under an older
+   name, kept so ResourceCard's scouting variant needs no edit. */
+.reveal,
 .enter {
-  animation: enter 0.5s both;
+  animation: reveal 420ms var(--ease-out) both;
 }
-/* Page entrance: headline, then body, then composer. Capped at six children
-   and 70ms apart, so the last one has landed by ~750ms. Nothing here delays
-   first paint — the DOM is already committed; this only fades it up. */
-.stagger > * {
-  animation: enter 400ms var(--ease-out) both;
-}
-.stagger > *:nth-child(1) {
-  animation-delay: 0ms;
-}
-.stagger > *:nth-child(2) {
-  animation-delay: 70ms;
-}
-.stagger > *:nth-child(3) {
-  animation-delay: 140ms;
-}
-.stagger > *:nth-child(4) {
-  animation-delay: 210ms;
-}
-.stagger > *:nth-child(5) {
-  animation-delay: 280ms;
-}
-.stagger > *:nth-child(n + 6) {
-  animation-delay: 350ms;
-}
-@keyframes enter {
+@keyframes reveal {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(14px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
   }
 }
 /* Ring-only pulses. Neither element is interactive, and neither changes size,
@@ -2064,17 +1984,6 @@ main {
   }
   50% {
     box-shadow: 0 0 0 11px transparent;
-  }
-}
-@keyframes rung-land {
-  0% {
-    box-shadow: 0 0 0 0 var(--sage);
-  }
-  60% {
-    box-shadow: 0 0 0 12px transparent;
-  }
-  100% {
-    box-shadow: 0 0 0 0 transparent;
   }
 }
 @keyframes status-blink {
@@ -2123,17 +2032,6 @@ main {
   }
   100% {
     transform: scale(1);
-  }
-}
-@keyframes select-candidate {
-  from {
-    background: var(--surface);
-    border-color: var(--line);
-  }
-  to {
-    background: var(--sage);
-    border-color: var(--moss);
-    box-shadow: 0 0 0 1px var(--moss);
   }
 }
 /* Pulses the ring, NOT the element's size — see the header note. */
@@ -2242,9 +2140,6 @@ main {
   .optimization-label {
     align-items: flex-start;
     flex-direction: column;
-  }
-  .optimization-intro h1 {
-    font-size: 42px;
   }
   .ladder-step {
     min-height: 85px;
@@ -2461,9 +2356,6 @@ main {
   .candidate-grid .resource-explanation {
     min-height: 0;
   }
-  .optimization-intro h1 {
-    font-size: 38px;
-  }
   .resource-card-candidate .plan-item-line {
     gap: 7px;
   }
@@ -2485,10 +2377,8 @@ main {
   .budget-track > span {
     transform: scaleX(1);
   }
-  .stagger > *,
-  .resolution-ladder > li,
-  .candidate-grid > *,
-  .candidate-selected,
+  .reveal,
+  .enter,
   .selected-mark,
   .attachment,
   .conversation-log .turn {

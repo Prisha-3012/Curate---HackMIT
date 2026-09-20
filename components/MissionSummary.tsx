@@ -3,6 +3,7 @@ import type { MissionExperience } from "@/lib/types";
 import { money } from "@/lib/formatting";
 import { groupNeeds } from "@/lib/plan";
 import { OttoAgent } from "./OttoAgent";
+import { Reveal } from "./Reveal";
 export function MissionSummary({
   experience,
   onContinue,
@@ -31,10 +32,12 @@ export function MissionSummary({
   const { mission, copy } = experience;
   return (
     <section className="understanding-screen">
-      <div className="section-intro stagger">
-        <span className="eyebrow">01 / YOUR MISSION, UNDERSTOOD</span>
-        <h1>{mission.title}</h1>
-        <p className="lead">{copy.summary}</p>
+      <div className="section-intro">
+        <Reveal>
+          <span className="eyebrow">01 / YOUR MISSION, UNDERSTOOD</span>
+          <h1>{mission.title}</h1>
+          <p className="lead">{copy.summary}</p>
+        </Reveal>
       </div>
       <div className="understanding-layout">
         <div className="mission-brief">
@@ -77,24 +80,24 @@ export function MissionSummary({
         <div className="needs-section">
           <span className="eyebrow">WHAT YOU ACTUALLY NEED</span>
           <div className="needs-list">
-            {groupNeeds(mission.needs).map((group, index) => (
-              <div
-                className="need-row enter"
-                style={{ animationDelay: `${index * 110}ms` }}
-                key={group.id}
-              >
-                <span className="need-number">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                <div>
-                  <span>{group.label}</span>
-                  {group.needs.length === 1 && group.needs[0].rationale && (
-                    <p className="need-rationale">{group.needs[0].rationale}</p>
-                  )}
+            <Reveal>
+              {groupNeeds(mission.needs).map((group, index) => (
+                <div className="need-row" key={group.id}>
+                  <span className="need-number">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <div>
+                    <span>{group.label}</span>
+                    {group.needs.length === 1 && group.needs[0].rationale && (
+                      <p className="need-rationale">
+                        {group.needs[0].rationale}
+                      </p>
+                    )}
+                  </div>
+                  <Check size={15} />
                 </div>
-                <Check size={15} />
-              </div>
-            ))}
+              ))}
+            </Reveal>
           </div>
         </div>
       </div>
