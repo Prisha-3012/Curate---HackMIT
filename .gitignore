@@ -1,20 +1,19 @@
-# --- python / backend -------------------------------------------------------
-.venv/
-__pycache__/
-*.pyc
-.pytest_cache/
-
+!.env.example
 # --- node / frontend --------------------------------------------------------
-node_modules/
-.next/
-out/
-*.tsbuildinfo
-test-results/
-playwright-report/
-
+# --- python / backend -------------------------------------------------------
 # --- shared -----------------------------------------------------------------
 # .env* covers .env (backend secrets) and .env.local (Next public config).
 # The example stays tracked.
-.env*
-!.env.example
+*.pyc
+*.tsbuildinfo
 .DS_Store
+.env*
+.next/
+.pytest_cache/
+.venv/
+__pycache__/
+cv/.venv/
+node_modules/
+out/
+playwright-report/
+test-results/
