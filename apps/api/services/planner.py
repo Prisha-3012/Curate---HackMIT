@@ -17,7 +17,7 @@ from typing import Any, Optional
 
 from apps.api.db import repo
 from apps.api.models.schemas import Need, Plan, Rung
-from apps.api.services import decompose, resolver, savings
+from apps.api.services import decompose, products, resolver, savings
 
 log = logging.getLogger(__name__)
 
@@ -132,6 +132,9 @@ def build_plan(
     prefs = repo.prefs_for(user_id)
 
     need_rows, needs_source = needs_for_goal(goal_text, mission_id=mid)
+    live_listings = products.fetch_products(goal_text, need_rows)
+    if live_listings:
+        listings = listings + live_listings
     needs: list[Need] = []
     categories: dict[str, str] = {}
 

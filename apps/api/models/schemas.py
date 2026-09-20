@@ -99,6 +99,9 @@ class Option(Base):
     #: DRIFT (§4): the OWN example carries image_url, the USED one omits it.
     #: Optional until §4 says otherwise.
     image_url: Optional[str] = None
+    #: Present for live market options. OWN/BORROW and legacy fixtures omit it.
+    product_url: Optional[str] = None
+    provider: Optional[str] = None
     match_score: float = Field(ge=0.0, le=1.0)
     why: str
     needs_fitcheck: bool
@@ -280,6 +283,15 @@ class CheckoutResponse(Base):
     amount_cents: int = Field(ge=0)
     #: DRIFT (§4): Cybersource returns no receipt URL. We synthesize a local one.
     receipt_url: Optional[str] = None
+
+
+class RetailerRedirectRequest(Base):
+    product_url: str
+
+
+class RetailerRedirectResponse(Base):
+    product_url: str
+    retailer: str
 
 
 # --------------------------------------------------------------------------

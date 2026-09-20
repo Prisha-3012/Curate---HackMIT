@@ -208,6 +208,8 @@ def to_option(
         price_cents=listing.get("price_cents") or 0,
         retail_cents=listing.get("retail_cents") or 0,
         image_url=listing.get("image_url"),
+        product_url=listing.get("product_url"),
+        provider=listing.get("provider"),
         match_score=score,
         why=explain(listing, need, owner_label),
         # Category is free-form since 2026-09-19; needs_fitcheck_for tolerates an

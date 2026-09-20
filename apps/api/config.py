@@ -54,6 +54,9 @@ class Settings(BaseSettings):
     stripe_secret_key: Optional[str] = None
 
     deepgram_api_key: Optional[str] = None
+    tavily_api_key: Optional[str] = None
+    tavily_timeout_s: float = 8.0
+    tavily_max_results: int = 8
     #: Deepgram model ids. Overridable for the same reason as LLM_MODEL: they
     #: move, and a retired id is a 4xx that degrades to the fixture silently.
     deepgram_stt_model: str = "nova-3"

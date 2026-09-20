@@ -105,3 +105,14 @@ goal with null, $150, $30, and $0 budgets. It expects seeded fixture provenance
 while no funded LLM provider is available. Requests/responses are attached to test
 results and screenshots are saved in `/tmp`. It does not intercept HTTP or alter
 backend code. Run suites sequentially; default tests explicitly force offline mode.
+
+## Live product links
+
+Set `TAVILY_API_KEY` in the API environment to enable live retailer search. The
+planner keeps owned and borrowed inventory, then adds validated USED/NEW results
+with `product_url` values to each option. Products without a direct HTTP(S)
+link or observable price are ignored. `DEMO_MODE=on` never calls Tavily and
+continues to serve the labeled fixtures.
+
+Live products are retailer redirects, not ENOUGH checkout transactions. Send a
+selected URL to `POST /api/retailer/redirect` before opening it in the client.
