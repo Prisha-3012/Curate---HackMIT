@@ -1,0 +1,16 @@
+{
+  "name": "Charcoal Boxy Heavyweight Tee",
+  "brand": "charcoal_boxy_tee",
+  "category": "top",
+  "fit": "oversized",
+  "description": "charcoal grey boxy oversized heavyweight cotton t-shirt, drop shoulder",
+  "product_url": "https://www.amazon.com/dp/B0GG3KCL68",
+  "image_url": "https://m.media-amazon.com/images/I/51-2xQLzFCL._AC_SL1335_.jpg",
+  "size_chart": {
+    "XS": {"chest_cm": [84, 92], "shoulder_cm": [40, 44]},
+    "S":  {"chest_cm": [90, 98], "shoulder_cm": [43, 47]},
+    "M":  {"chest_cm": [96, 104], "shoulder_cm": [46, 50]},
+    "L":  {"chest_cm": [102, 110], "shoulder_cm": [49, 53]},
+    "XL": {"chest_cm": [108, 116], "shoulder_cm": [52, 56]}
+  }
+}

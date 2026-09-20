@@ -1,0 +1,32 @@
+{
+  "_comment": "Curated garment catalog for the virtual try-on + size recommendation. Each entry is a real product with a clean, hotlinkable garment image and a real size chart, so the try-on and sizing run reliably without scraping a live page. Live web search still supplies the browse/buy links elsewhere; this is the controlled set the try-on itself uses.",
+  "garments": [
+    {
+      "id": "charcoal_boxy_tee",
+      "spec": "charcoal_boxy_tee.json",
+      "name": "Charcoal Boxy Heavyweight Tee",
+      "category": "top",
+      "fit": "oversized",
+      "product_url": "https://www.amazon.com/dp/B0GG3KCL68",
+      "image_url": "https://m.media-amazon.com/images/I/51-2xQLzFCL._AC_SL1335_.jpg"
+    },
+    {
+      "id": "uniqlo_crew_tee",
+      "spec": "uniqlo_crew_tee.json",
+      "name": "Uniqlo Crew Neck T-Shirt",
+      "category": "top",
+      "fit": "regular",
+      "product_url": "https://www.uniqlo.com/us/en/products/E422992-000/00",
+      "image_url": "https://image.uniqlo.com/UQ/ST3/us/imagesgoods/422992/item/usgoods_38_422992_3x4.jpg"
+    },
+    {
+      "id": "uniqlo_oxford_slim",
+      "spec": "uniqlo_oxford_slim.json",
+      "name": "Uniqlo Unisex Oxford Slim Shirt",
+      "category": "top",
+      "fit": "slim",
+      "product_url": "https://www.uniqlo.com/us/en/products/E456630-000/00",
+      "image_url": "https://image.uniqlo.com/UQ/ST3/us/imagesgoods/456630/item/usgoods_64_456630_3x4.jpg"
+    }
+  ]
+}

@@ -60,17 +60,19 @@ export function ResourceCard({
             {percent(resource.matchScore)} match
           </span>
         )}
-        {resource.productUrl && resource.source === "new" && (
-          <a
-            className="product-link"
-            href={resource.productUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            View product →
-          </a>
-        )}
+        {resource.productUrl &&
+          (resource.source === "new" || resource.source === "used") && (
+            <a
+              className="product-link"
+              href={resource.productUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              View product →
+            </a>
+          )}
         {resource.source === "used" &&
+          !resource.productUrl &&
           (resource.marketplaces?.length ?? 0) > 0 && (
             <div
               className="marketplace-links"
@@ -83,7 +85,7 @@ export function ResourceCard({
               }}
             >
               <span style={{ fontSize: "0.72rem", opacity: 0.6 }}>
-                Find secondhand:
+                Browse secondhand:
               </span>
               {resource.marketplaces!.map((m) => (
                 <a
@@ -98,18 +100,6 @@ export function ResourceCard({
                 </a>
               ))}
             </div>
-          )}
-        {resource.source === "used" &&
-          (resource.marketplaces?.length ?? 0) === 0 &&
-          resource.productUrl && (
-            <a
-              className="product-link"
-              href={resource.productUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              View product →
-            </a>
           )}
         {variant !== "scouting" && resource.needsFitcheck && (
           <span className="fitcheck-note">

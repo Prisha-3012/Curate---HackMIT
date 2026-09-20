@@ -1,0 +1,16 @@
+{
+  "name": "Uniqlo Crew Neck T-Shirt",
+  "brand": "uniqlo_crew_tee",
+  "category": "top",
+  "fit": "regular",
+  "description": "white regular-fit short-sleeve cotton crew neck t-shirt",
+  "product_url": "https://www.uniqlo.com/us/en/products/E422992-000/00",
+  "image_url": "https://image.uniqlo.com/UQ/ST3/us/imagesgoods/422992/item/usgoods_38_422992_3x4.jpg",
+  "size_chart": {
+    "XS": {"chest_cm": [82, 88], "shoulder_cm": [41, 43]},
+    "S":  {"chest_cm": [88, 96], "shoulder_cm": [43, 45]},
+    "M":  {"chest_cm": [96, 104], "shoulder_cm": [45, 47]},
+    "L":  {"chest_cm": [104, 112], "shoulder_cm": [47, 49]},
+    "XL": {"chest_cm": [112, 120], "shoulder_cm": [49, 52]}
+  }
+}

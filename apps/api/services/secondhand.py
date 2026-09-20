@@ -27,6 +27,7 @@ import httpx
 
 from apps.api.config import demo_mode_enabled, get_settings
 from apps.api.models.schemas import MarketplaceLink, Option, Rung
+from apps.api.services import products
 
 log = logging.getLogger(__name__)
 
@@ -97,20 +98,26 @@ def find_listing_url(query: str) -> Optional[str]:
     except (httpx.HTTPError, ValueError):
         log.warning("secondhand search failed for %r; using marketplace links", query)
         return None
+    # Keep only URLs that point at ONE item (eBay /itm/, Depop /products/, …),
+    # never a search or category page — that is the whole point of this change.
     for result in results:
         if not isinstance(result, dict):
             continue
         url = result.get("url")
-        if isinstance(url, str) and url.startswith("http"):
+        title = str(result.get("title") or "")
+        content = str(result.get("content") or "")
+        if products.is_single_product_url(url, title, content):
             return url
     return None
 
 
 def enrich_used_options(options: list[Option], need: dict[str, Any]) -> list[Option]:
-    """Give every USED option somewhere to buy it.
+    """Point every USED option at a specific secondhand listing where possible.
 
-    OWN/BORROW/NEW pass through untouched — OWN/BORROW aren't bought and NEW
-    already carries a retailer product_url from the live search.
+    product_url is set ONLY to a real single-product page (a live listing already
+    on the option, or one found by the scoped web search). It is left None when
+    no single item is found, rather than a search page — the UI then shows the
+    `marketplaces` browse links instead. OWN/BORROW/NEW pass through untouched.
     """
     out: list[Option] = []
     for option in options:
@@ -118,7 +125,10 @@ def enrich_used_options(options: list[Option], need: dict[str, Any]) -> list[Opt
             out.append(option)
             continue
         query = _search_query(option, need)
-        links = marketplace_links(query)
-        product_url = option.product_url or find_listing_url(query) or (links[0].url if links else None)
-        out.append(option.model_copy(update={"marketplaces": links, "product_url": product_url}))
+        product_url = option.product_url or find_listing_url(query)
+        out.append(
+            option.model_copy(
+                update={"marketplaces": marketplace_links(query), "product_url": product_url}
+            )
+        )
     return out

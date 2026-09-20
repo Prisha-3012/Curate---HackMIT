@@ -33,6 +33,47 @@ LISTICLE_TITLE_RE = re.compile(
     r"\b(?:these|the)\s+\d+\b|\b\d+\s+(?:ways|tips|ideas|things|steps)\b",
     re.IGNORECASE,
 )
+#: A query param that pins ONE specific product or variant (…?sku=9500-0030).
+PRODUCT_PARAM_RE = re.compile(
+    r"[?&](?:sku|variant|variant_id|pid|productid|product_id|itemid|item_id|prod|dwvar|id)=",
+    re.IGNORECASE,
+)
+#: A path token that marks a single product / single listing page.
+PRODUCT_PATH_RE = re.compile(
+    r"/(?:dp|gp/product|itm|products?|p|pd|listings?|items?|prod)/[\w%-]",
+    re.IGNORECASE,
+)
+#: A pure search URL — never one product.
+SEARCH_URL_RE = re.compile(
+    r"/(?:search|sch|browse|s-cat)(?:/|$)|[?&](?:_nkw|q|query|keyword|search|k)=",
+    re.IGNORECASE,
+)
+#: Title/snippet wording of a collection or results page ("Shop All Lanterns
+#: (59 Products)"), not one item.
+COLLECTION_TEXT_RE = re.compile(
+    r"\bshop\s+all\b|\bshop\s+by\b|\ball\s+products\b|\bsearch\s+results\b"
+    r"|\(\s*\d+\s+products?\s*\)|\b\d+\s+products?\b|\b\d+\s+results?\b",
+    re.IGNORECASE,
+)
+
+
+def is_single_product_url(url: Any, title: str = "", content: str = "") -> bool:
+    """True only when this clearly points at ONE product, not a search, category
+    or collection page.
+
+    Uses positive signals — a product/variant query param, or a product path
+    token — because listing URLs come in too many shapes to blocklist (a
+    /c/lighting/lanterns/ category page and a /c/lighting/lanterns/denison/?sku=…
+    product page share a prefix). Prefers a false negative (no link) over
+    linking a page the user has to search again.
+    """
+    if not isinstance(url, str) or not url:
+        return False
+    if SEARCH_URL_RE.search(url):
+        return False
+    if COLLECTION_TEXT_RE.search(title) or COLLECTION_TEXT_RE.search(content):
+        return False
+    return bool(PRODUCT_PARAM_RE.search(url) or PRODUCT_PATH_RE.search(url))
 
 
 def _valid_url(value: Any) -> bool:
@@ -77,11 +118,13 @@ def normalize_result(
     title = str(result.get("title") or "").strip()
     url = result.get("url") or result.get("product_url")
     price_cents = _price_cents(result)
+    snippet = " ".join(str(result.get(k) or "") for k in ("title", "content", "raw_content"))
     if (
         not title
         or not _valid_url(url)
         or price_cents is None
         or _looks_editorial(result)
+        or not is_single_product_url(url, title, snippet)  # must be ONE product page
     ):
         return None
 
