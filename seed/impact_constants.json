@@ -1,0 +1,20 @@
+{
+  "_note": "Cited by ARCHITECTURE.md §4 impact.assumptions_note but defined in neither §3 nor §7. Authored with savings.py (step 6). Figures are order-of-magnitude estimates for a hackathon demo, not audited LCA numbers — the Plan says so in assumptions_note, and that honesty is the point.",
+  "textile_kg_per_category": {
+    "top": 2.1,
+    "bottom": 3.4,
+    "outerwear": 5.9,
+    "footwear": 1.4,
+    "other": 1.0
+  },
+  "sources": [
+    {
+      "claim": "Cotton shirt cradle-to-gate footprint",
+      "ref": "Ellen MacArthur Foundation, A New Textiles Economy (2017)"
+    },
+    {
+      "claim": "Garment reuse displaces roughly one new unit of production",
+      "ref": "WRAP, Valuing Our Clothes (2017)"
+    }
+  ]
+}
