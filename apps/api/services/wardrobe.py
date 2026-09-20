@@ -216,7 +216,21 @@ def analyze_wardrobe(
         content = r.json()["choices"][0]["message"]["content"]
         items = _parse_items(json.loads(content))
     except (httpx.HTTPError, KeyError, IndexError, ValueError, TypeError) as exc:
-        log.warning("wardrobe vision via %s (%s) failed (%s); no items stored", name, model, type(exc).__name__)
+        # Redact credentials even if the provider echoes them in its error.
+        detail = exc.response.text if isinstance(exc, httpx.HTTPStatusError) else str(exc)
+        detail = detail.replace(headers["Authorization"], "[REDACTED]")
+        if key:
+            detail = detail.replace(key, "[REDACTED]")
+        if isinstance(exc, httpx.HTTPStatusError):
+            log.warning(
+                "wardrobe vision via %s (%s) failed (HTTP %s); response=%r",
+                name, model, exc.response.status_code, detail[:1000],
+            )
+        else:
+            log.warning(
+                "wardrobe vision via %s (%s) failed (%s): %s",
+                name, model, type(exc).__name__, detail,
+            )
         return [], "error"
 
     if not items:

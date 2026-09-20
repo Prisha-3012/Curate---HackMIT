@@ -1,5 +1,6 @@
 import { ArrowUpRight, CornerDownLeft, Mic, MoveUpRight } from "lucide-react";
 import type { ExperienceCopy } from "@/lib/types";
+import type { ReactNode } from "react";
 import { OttoAgent } from "./OttoAgent";
 export function MissionInput({
   input,
@@ -11,7 +12,9 @@ export function MissionInput({
   voiceState = "simulated",
   copy,
   exampleInput,
+  closetCheck,
 }: {
+  closetCheck?: ReactNode;
   copy: ExperienceCopy;
   exampleInput: string;
   input: string;
@@ -95,6 +98,7 @@ export function MissionInput({
           </button>
         </div>
       </form>
+      {closetCheck}
       {onTalk && (
         <div className="example-row">
           <span>Rather talk?</span>

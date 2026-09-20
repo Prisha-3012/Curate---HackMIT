@@ -2,6 +2,7 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { RotateCcw } from "lucide-react";
 import { EnoughLogo } from "./EnoughLogo";
+import { WardrobeUpload } from "./WardrobeUpload";
 import { MissionInput } from "./MissionInput";
 import { MissionSummary } from "./MissionSummary";
 import { SearchProgress } from "./SearchProgress";
@@ -201,6 +202,7 @@ export function EnoughExperience() {
             onChange={setInput}
             onSubmit={submit}
             busy={false}
+            closetCheck={DEMO_MODE ? undefined : <WardrobeUpload />}
             copy={DEMO_MODE ? fixture.copy : backendCopy}
             exampleInput={
               DEMO_MODE
