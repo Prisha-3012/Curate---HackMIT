@@ -47,7 +47,7 @@ export function EnoughPlan({
                   : "A PLAN WITH ROOM TO COMPLETE"}
           </span>
           <h1>
-            Here’s your <em>ENOUGH</em> plan.
+            Here’s your <em>curated</em> plan.
           </h1>
           <p className="lead">
             {backendFixture

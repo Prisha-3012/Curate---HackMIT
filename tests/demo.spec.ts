@@ -54,7 +54,7 @@ for (const fixture of fixtures) {
       page.getByRole("heading", { name: "Finding the best combination." }),
     ).toBeVisible({ timeout: 10000 });
     await expect(
-      page.getByRole("heading", { name: "Here’s your ENOUGH plan." }),
+      page.getByRole("heading", { name: "Here’s your curated plan." }),
     ).toBeVisible();
     const { plan } = prepareFixture(fixture);
     await expect(page.locator(".enough-price .sr-only")).toHaveText(
