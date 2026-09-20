@@ -82,14 +82,39 @@ Every category must be one of: top, bottom, outerwear, footwear, other.
 
 _WARDROBE: dict[str, dict[str, Any]] = {}
 
+#: A stored wardrobe expires after this long. The store is keyed by a shared demo
+#: user in process memory, so without expiry one person's (or one stale) upload
+#: would claim ownership on every later plan, including plans where nobody
+#: uploaded anything. A short life ties "you already own this" to a recent,
+#: real scan and lets an old one heal itself.
+WARDROBE_TTL_SECONDS = 900  # 15 minutes
+
+#: Only a genuine detection may claim ownership. "none"/"error" (and any legacy
+#: "fixture") never do.
+_REAL_SOURCES = frozenset(VISION_MODELS)  # gemini, openai, groq, xai
+
 
 def set_wardrobe(user_id: str, items: list[dict[str, Any]], source: str) -> None:
-    _WARDROBE[user_id] = {"items": items, "source": source}
+    _WARDROBE[user_id] = {"items": items, "source": source, "ts": time.time()}
 
 
 def get_wardrobe(user_id: str) -> list[dict[str, Any]]:
-    """The detected items for a user, or [] when none has been uploaded."""
-    return _WARDROBE.get(user_id, {}).get("items", [])
+    """The user's OWNED items to apply to a plan, or [].
+
+    Returns items ONLY when they came from a real detection AND were uploaded
+    recently. A missing timestamp (legacy/stale entry), an expired entry, or a
+    non-real source all yield [] — so a plan the user didn't just scan for never
+    says "you already own this".
+    """
+    meta = _WARDROBE.get(user_id)
+    if not meta:
+        return []
+    if meta.get("source") not in _REAL_SOURCES:
+        return []
+    ts = meta.get("ts")
+    if not isinstance(ts, (int, float)) or (time.time() - ts) > WARDROBE_TTL_SECONDS:
+        return []
+    return meta.get("items", [])
 
 
 def get_wardrobe_meta(user_id: str) -> Optional[dict[str, Any]]:

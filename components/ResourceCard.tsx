@@ -1,8 +1,9 @@
-import { Check, MapPin, Ruler } from "lucide-react";
+import { Check, MapPin } from "lucide-react";
 import type { Resource } from "@/lib/types";
 import { money, percent } from "@/lib/formatting";
 import { ResourceVisual } from "./ResourceVisual";
 import { ResourceSourceBadge } from "./ResourceSourceBadge";
+import { FitCheck } from "./FitCheck";
 export function ResourceCard({
   resource,
   variant = "plan",
@@ -100,9 +101,7 @@ export function ResourceCard({
             </div>
           )}
         {variant !== "scouting" && resource.needsFitcheck && (
-          <span className="fitcheck-note">
-            <Ruler size={11} /> Fit check needed
-          </span>
+          <FitCheck item={{ name: resource.name, category: resource.category }} />
         )}
       </div>
       {(recommended || selected) && (
