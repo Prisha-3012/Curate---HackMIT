@@ -7,6 +7,11 @@ this need, cheapest-impact first"; the budget is a constraint across the WHOLE
 plan and cannot be evaluated one need at a time. Pushing it into the resolver
 would also corrupt rung-beats-score, because the cheapest option for a need is
 frequently on a later rung than the right one.
+
+WARDROBE (2026-09-19): if the user has uploaded a closet photo (services/
+wardrobe.py), their detected items are injected as OWN listings so the ladder
+prefers them, and their signatures are passed to the resolver so it won't
+recommend BUYING duplicates of what they already own.
 """
 
 from __future__ import annotations
@@ -17,7 +22,7 @@ from typing import Any, Optional
 
 from apps.api.db import repo
 from apps.api.models.schemas import Need, Plan, Rung
-from apps.api.services import decompose, products, resolver, savings
+from apps.api.services import decompose, products, resolver, savings, wardrobe
 
 log = logging.getLogger(__name__)
 
@@ -135,12 +140,28 @@ def build_plan(
     live_listings = products.fetch_products(goal_text, need_rows)
     if live_listings:
         listings = listings + live_listings
+
+    # The user's photographed closet, if any, as OWN listings the ladder prefers.
+    own_listings = wardrobe.to_own_listings(wardrobe.get_wardrobe(user_id), user_id)
+    if own_listings:
+        listings = listings + own_listings
+    # Dedup keys for the resolver. Only signatures WITH a color count, so we
+    # never block a purchase on an over-broad "owns some top in this category".
+    owned_signatures = {
+        sig for sig in (resolver.signature(item) for item in own_listings) if sig[1]
+    }
+
     needs: list[Need] = []
     categories: dict[str, str] = {}
 
     for row in need_rows:
         options, recommended, unmet_reason = resolver.resolve_need(
-            row, listings, users=users, viewer_id=user_id, prefs=prefs
+            row,
+            listings,
+            users=users,
+            viewer_id=user_id,
+            prefs=prefs,
+            owned_signatures=owned_signatures,
         )
         categories[row["id"]] = row["category"]
         needs.append(

@@ -19,6 +19,13 @@ Scoring is plain attribute overlap, no embeddings (per the build order):
 
 Taste is a nudge, never a veto: it breaks ties between things that already
 satisfy the need, and it cannot promote something that doesn't.
+
+WARDROBE DEDUP (2026-09-19): resolve_need takes an optional set of `owned
+signatures` — coarse (category, color, style) identities of what the person
+already owns, built by the planner from their uploaded closet. A USED or NEW
+candidate whose signature is already owned is dropped before ranking: the app
+must not recommend BUYING a sixth white tee. OWN and BORROW are never dropped —
+preferring them is the point.
 """
 
 from __future__ import annotations
@@ -118,6 +125,24 @@ def score_listing(
     taste = (preference_bonus(listing, prefs or {}) + 1.0) / 2.0
     adjusted = base * (1.0 - PREF_WEIGHT) + PREF_WEIGHT * taste
     return round(max(0.0, min(1.0, adjusted)), 2)
+
+
+def signature(listing: dict[str, Any]) -> tuple[str, str, str]:
+    """A coarse identity for dedup: (category, color, style).
+
+    Two listings with the same signature are "the same kind of thing" for the
+    purpose of not recommending a purchase of what the person already owns. The
+    planner builds the owned set only from items that have a color, so a
+    signature with an empty color can never appear in it and never blocks a
+    recommendation — which would be far too broad ("owns a top" != "owns THIS
+    top").
+    """
+    attrs = listing.get("attrs") or {}
+    return (
+        str(listing.get("category") or "").strip().lower(),
+        str(attrs.get("color") or "").strip().lower(),
+        str(attrs.get("style") or attrs.get("type") or "").strip().lower(),
+    )
 
 
 # --------------------------------------------------------------------------
@@ -231,6 +256,7 @@ def resolve_need(
     users: Optional[dict[str, dict]] = None,
     viewer_id: str = "",
     prefs: Optional[dict[str, Any]] = None,
+    owned_signatures: Optional[set[tuple[str, str, str]]] = None,
 ) -> tuple[list[Option], Optional[str], Optional[str]]:
     """Walk the ladder for one need.
 
@@ -239,12 +265,19 @@ def resolve_need(
     which is what makes the UI legible. recommended is the earliest rung clearing
     the threshold.
 
+    `owned_signatures` are the (category, color, style) identities of what the
+    viewer already owns. A USED or NEW candidate whose signature is owned is
+    dropped before ranking, so the plan never recommends buying a duplicate of
+    something in the closet. OWN and BORROW are exempt — preferring them is the
+    whole point.
+
     When nothing anywhere on the ladder clears MIN_SCORE the need is UNMET:
     options is empty, recommended is None, and unmet_reason says why in a
     sentence the UI can show. The need still belongs in the plan — dropping it
     would shrink the plan silently and flatter the impact number.
     """
     users = users or {}
+    owned = owned_signatures or set()
     wanted_category = need["category"]
 
     in_category = 0
@@ -255,12 +288,16 @@ def resolve_need(
             continue  # hard filter
         if not _available_to(listing, viewer_id):
             continue
+        rung = Rung(listing["rung"])
+        # Dedup: never recommend BUYING something the viewer already owns one of.
+        # OWN/BORROW are exempt so the closet still wins the need outright.
+        if owned and rung in (Rung.USED, Rung.NEW) and signature(listing) in owned:
+            continue
         in_category += 1
         score = score_listing(listing, need, prefs)
         if score < MIN_SCORE:
             best_rejected = max(best_rejected, score)
             continue
-        rung = Rung(listing["rung"])
         current = best_per_rung.get(rung)
         # Deterministic: higher score wins; ties break on cheaper, then on id, so
         # the same seed always produces the same plan.

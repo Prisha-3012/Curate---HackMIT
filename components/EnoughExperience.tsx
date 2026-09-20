@@ -9,6 +9,7 @@ import { OptimizationView } from "./OptimizationView";
 import { EnoughPlan } from "./EnoughPlan";
 import { DemoControls } from "./DemoControls";
 import { OttoConversation } from "./OttoConversation";
+import { WardrobeUpload } from "./WardrobeUpload";
 import { getEnoughService } from "@/lib/services";
 import { waitForDemo } from "@/lib/services/mockEnoughService";
 import { DEMO_MODE, TIMING } from "@/lib/demo-data";
@@ -221,6 +222,7 @@ export function EnoughExperience() {
             }
             voiceState={DEMO_MODE ? "simulated" : voice.state}
             onTalk={DEMO_MODE ? undefined : () => setStage("conversation")}
+            accessory={!DEMO_MODE ? <WardrobeUpload /> : undefined}
           />
         )}
         {stage === "understanding" && (

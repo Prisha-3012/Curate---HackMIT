@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { ArrowUpRight, CornerDownLeft, Mic, MoveUpRight } from "lucide-react";
 import type { ExperienceCopy } from "@/lib/types";
 import { OttoAgent } from "./OttoAgent";
@@ -11,6 +12,7 @@ export function MissionInput({
   voiceState = "simulated",
   copy,
   exampleInput,
+  accessory,
 }: {
   copy: ExperienceCopy;
   exampleInput: string;
@@ -23,6 +25,8 @@ export function MissionInput({
   onTalk?: () => void;
   /** "simulated" keeps the offline demo's original wording. */
   voiceState?: "simulated" | "idle" | "recording" | "transcribing";
+  /** Rendered right below the composer — e.g. the wardrobe uploader. */
+  accessory?: ReactNode;
 }) {
   const voiceLabel = {
     simulated: "Try simulated voice input",
@@ -95,6 +99,7 @@ export function MissionInput({
           </button>
         </div>
       </form>
+      {accessory}
       {onTalk && (
         <div className="example-row">
           <span>Rather talk?</span>
