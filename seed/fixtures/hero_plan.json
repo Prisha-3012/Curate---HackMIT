@@ -43,18 +43,6 @@
       "priority": 1,
       "options": [
         {
-          "listing_id": "3e6f9a42-0c1d-4e5f-9a73-8b4c0d2e6f93",
-          "rung": "BORROW",
-          "title": "Light blue oxford shirt, M",
-          "owner_label": "Maya, your roommate",
-          "price_cents": 0,
-          "retail_cents": 6800,
-          "image_url": "/seed/images/oxford-shirt-blue.jpg",
-          "match_score": 0.83,
-          "why": "Maya has two and offered one for the summer. Costs nothing and needs no sizing gamble.",
-          "needs_fitcheck": false
-        },
-        {
           "listing_id": "4f70ab53-1d2e-4f60-8b84-9c5d1e3f70a4",
           "rung": "USED",
           "title": "J.Crew cotton oxford, M",
@@ -79,7 +67,7 @@
           "needs_fitcheck": true
         }
       ],
-      "recommended_listing_id": "3e6f9a42-0c1d-4e5f-9a73-8b4c0d2e6f93"
+      "recommended_listing_id": "4f70ab53-1d2e-4f60-8b84-9c5d1e3f70a4"
     },
     {
       "need_id": "9c4a3d12-6e8f-40a3-8b25-7d1c9e4f3a62",
@@ -116,9 +104,9 @@
     }
   ],
   "impact": {
-    "baseline_cents": 37800,
-    "plan_cents": 5500,
-    "saved_cents": 32300,
+    "baseline_cents": 40800,
+    "plan_cents": 8100,
+    "saved_cents": 32700,
     "items_reused": 3,
     "textile_kg_avoided": 9.4,
     "assumptions_note": "Estimates. See seed/impact_constants.json for sources."

@@ -163,17 +163,17 @@ def test_taste_breaks_ties_between_equally_good_matches():
 
 
 def test_ladder_order_is_the_doc_order():
-    assert LADDER == (Rung.OWN, Rung.BORROW, Rung.USED, Rung.NEW)
+    assert LADDER == (Rung.OWN, Rung.USED, Rung.NEW)
 
 
 def test_rung_beats_score(listings, needs, users):
-    """The whole thesis: a better-matching NEW item must not displace a borrowed
+    """The whole thesis: a better-matching NEW item must not displace a used
     one that clears the bar."""
     shirts = next(n for n in needs if n["category"] == "top")
     options, recommended = _resolve(shirts, listings, users)
 
     rec = next(o for o in options if o.listing_id == recommended)
-    assert rec.rung is Rung.BORROW
+    assert rec.rung is Rung.USED
 
     new_opts = [o for o in options if o.rung is Rung.NEW]
     assert new_opts, "seed should offer a NEW shirt for this to be a real test"
@@ -220,11 +220,11 @@ def test_the_neon_windbreaker_is_rejected(listings, needs, users):
     assert "Neon windbreaker, M" not in {o.title for o in options}
 
 
-def test_own_and_borrow_options_are_free(listings, needs, users):
+def test_own_options_are_free(listings, needs, users):
     for need in needs:
         options, _ = _resolve(need, listings, users)
         for o in options:
-            if o.rung in (Rung.OWN, Rung.BORROW):
+            if o.rung is Rung.OWN:
                 assert o.price_cents == 0
 
 
@@ -241,7 +241,7 @@ def test_resolution_is_deterministic(listings, needs, users):
 
 HERO_RECOMMENDATIONS = {
     "a pair of non-sneaker shoes": "1c4d7e20-8a9b-4c3d-9e51-6f2a8b0c4d71",  # OWN oxfords
-    "two collared shirts you can rotate": "3e6f9a42-0c1d-4e5f-9a73-8b4c0d2e6f93",  # BORROW Maya
+    "two collared shirts you can rotate": "4f70ab53-1d2e-4f60-8b84-9c5d1e3f70a4",  # USED J.Crew
     "one layer for over-air-conditioned offices": "6192cd75-3f40-4b82-8da6-1e7f305092c6",  # USED blazer
 }
 
@@ -258,7 +258,7 @@ def test_resolver_reproduces_hero_recommendations(listings, needs, users):
 def test_resolver_reproduces_hero_option_counts(listings, needs, users):
     expected = {
         "a pair of non-sneaker shoes": 2,
-        "two collared shirts you can rotate": 3,
+        "two collared shirts you can rotate": 2,
         "one layer for over-air-conditioned offices": 2,
     }
     for need in needs:

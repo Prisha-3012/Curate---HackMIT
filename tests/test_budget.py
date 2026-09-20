@@ -113,12 +113,11 @@ def test_rung_is_never_downgraded_to_fit_a_budget(plan_with):
         assert _rec(need).rung is _rec(before).rung
 
 
-def test_free_plans_are_unaffected_by_any_budget(plan_with):
-    """A dinner answered entirely from OWN and BORROW costs nothing, so even a
-    $1 budget must leave it intact."""
+def test_paid_plans_respect_a_tiny_budget_without_downgrading(plan_with):
+    """With BORROW removed, paid USED options cannot survive a tiny budget."""
     plan = plan_with(DOMAINS["dinner"], 100)
     assert plan.impact.plan_cents == 0
-    assert all(n.recommended_listing_id for n in plan.needs)
+    assert any(n.recommended_listing_id is None for n in plan.needs)
 
 
 def test_an_absent_budget_is_unconstrained(plan_with):
@@ -140,11 +139,15 @@ def test_zero_is_a_real_constraint_not_an_absent_budget(plan_with):
     assert plan.impact.plan_cents == 0
 
 
-def test_zero_budget_still_keeps_everything_that_is_free(plan_with):
-    """$0 is a spending limit, not a refusal to plan. A dinner answered entirely
-    from OWN and BORROW costs nothing and must survive intact."""
+def test_zero_budget_still_keeps_owned_options(plan_with):
+    """$0 keeps free OWN options while dropping paid USED options."""
     plan = plan_with(DOMAINS["dinner"], 0)
-    assert all(n.recommended_listing_id for n in plan.needs)
+    assert any(n.recommended_listing_id is None for n in plan.needs)
+    assert any(
+        n.recommended_listing_id
+        and _rec(n).rung is Rung.OWN
+        for n in plan.needs
+    )
     assert plan.impact.plan_cents == 0
 
 

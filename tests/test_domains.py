@@ -44,22 +44,22 @@ def test_camping_plan_resolves(plan_for):
     assert len(met) == 4, "every camping need should resolve against the seed"
 
 
-def test_camping_prefers_owned_and_borrowed(plan_for):
+def test_camping_prefers_owned_and_used(plan_for):
     plan = plan_for("camping", 20000)
     rungs = {n.label: _rec(n).rung for n in plan.needs if n.recommended_listing_id}
     assert rungs["shelter for five people"] is Rung.OWN
     assert rungs["stay warm overnight"] is Rung.OWN
-    assert rungs["cook hot food"] is Rung.BORROW
+    assert rungs["cook hot food"] is Rung.USED
     assert Rung.NEW not in rungs.values()
 
 
 def test_camping_ladder_beats_score(plan_for):
-    """A borrowed stove wins even though paid options score at least as well."""
+    """A USED stove wins even though the NEW option scores at least as well."""
     plan = plan_for("camping", 20000)
     need = next(n for n in plan.needs if n.label == "cook hot food")
     rec = _rec(need)
-    assert rec.rung is Rung.BORROW
-    later = [o for o in need.options if o.rung in (Rung.USED, Rung.NEW)]
+    assert rec.rung is Rung.USED
+    later = [o for o in need.options if o.rung is Rung.NEW]
     assert later, "seed should offer paid stoves for this to prove anything"
     assert max(o.match_score for o in later) >= rec.match_score
 
@@ -73,19 +73,21 @@ def test_dinner_plan_resolves(plan_for):
     assert [n for n in plan.needs if n.recommended_listing_id]
 
 
-def test_dinner_uses_owned_and_borrowed_first(plan_for):
+def test_dinner_uses_owned_and_used_first(plan_for):
     plan = plan_for("dinner", 15000)
     rungs = {n.label: _rec(n).rung for n in plan.needs if n.recommended_listing_id}
     assert rungs["cook for a crowd"] is Rung.OWN          # user's stockpot
-    assert rungs["somewhere for twelve people to sit"] is Rung.BORROW  # Maya's chairs
-    assert rungs["keep food and drinks cold"] is Rung.BORROW           # Dev's cooler
+    assert rungs["somewhere for twelve people to sit"] is Rung.USED
+    assert rungs["keep food and drinks cold"] is Rung.USED
 
 
-def test_dinner_costs_nothing_at_all(plan_for):
-    """The strongest form of the thesis: a whole dinner for twelve, $0."""
+def test_dinner_impact_reflects_used_purchases(plan_for):
+    """Without BORROW, the dinner needs backed only by USED options cost money."""
     plan = plan_for("dinner", 15000)
-    assert plan.impact.plan_cents == 0
-    assert plan.impact.saved_cents == plan.impact.baseline_cents
+    assert plan.impact.plan_cents == 6000
+    assert plan.impact.saved_cents == (
+        plan.impact.baseline_cents - plan.impact.plan_cents
+    )
 
 
 # --- domains don't leak into each other ------------------------------------

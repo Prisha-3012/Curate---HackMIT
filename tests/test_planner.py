@@ -1,20 +1,28 @@
 """End to end, with the live resolver and savings rather than the fixture."""
 
+from unittest.mock import patch
+
 import pytest
 
 from apps.api import fixtures
 from apps.api.models.schemas import Plan, Rung
 from apps.api.db import repo
-from apps.api.services import planner
+from apps.api.services import planner, products
 
 DEMO_USER = "00000000-0000-0000-0000-000000000001"
 
 
 @pytest.fixture(scope="module")
 def built() -> Plan:
-    return planner.build_plan(
-        "business casual for my internship", user_id=DEMO_USER, budget_cents=15000
-    )
+    with patch.object(products, "fetch_products", return_value=[]):
+        return planner.build_plan(
+            "business casual for my internship", user_id=DEMO_USER, budget_cents=15000
+        )
+
+
+@pytest.fixture(autouse=True)
+def no_live_product_search(monkeypatch):
+    monkeypatch.setattr(products, "fetch_products", lambda *args, **kwargs: [])
 
 
 def test_built_plan_validates_against_the_contract(built):

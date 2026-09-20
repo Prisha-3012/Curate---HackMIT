@@ -47,7 +47,9 @@ def test_hero_plan_shape(plan: Plan) -> None:
     assert plan.goal_text == "business casual for my internship"
     assert len(plan.needs) == 3, "the hero plan is specified as three needs"
     rungs = {opt.rung for need in plan.needs for opt in need.options}
-    assert rungs == set(Rung), f"hero plan must span all four rungs, got {rungs}"
+    assert rungs == {Rung.OWN, Rung.USED, Rung.NEW}, (
+        f"hero plan must span the active three rungs, got {rungs}"
+    )
 
 
 # --- referential integrity -------------------------------------------------

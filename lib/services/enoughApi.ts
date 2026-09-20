@@ -23,7 +23,7 @@ export function parseBudgetCents(input: string): number | null {
 export function createEnoughApi(
   baseUrl: string,
   userId: string,
-  timeoutMs = 15000,
+  timeoutMs = 45000,
 ): EnoughService {
   return {
     async prepareMission(input, signal, budgetCents) {

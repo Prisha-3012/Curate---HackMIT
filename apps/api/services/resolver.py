@@ -1,12 +1,12 @@
 """The ladder. ARCHITECTURE.md §1, §2.
 
-For each need, walk OWN -> BORROW -> USED -> NEW and return ranked options.
+For each need, walk OWN -> USED -> NEW and return ranked options.
 
 Two rules, and the order matters:
 
   1. RUNG BEATS SCORE. The recommendation is the earliest rung holding a candidate
      that clears MATCH_THRESHOLD. A better-matching NEW shirt never displaces a
-     borrowed one that does the job. This is the whole thesis of the app — the
+     used one that does the job. This is the whole thesis of the app — the
      impact number counts items_reused, so a ranker that optimised for match
      quality or for price alone would quietly push people toward new production.
   2. WITHIN A RUNG, score decides.
@@ -38,7 +38,7 @@ MIN_SCORE = 0.35
 PREF_WEIGHT = 0.10
 
 #: §1's order. Index = preference.
-LADDER: tuple[Rung, ...] = (Rung.OWN, Rung.BORROW, Rung.USED, Rung.NEW)
+LADDER: tuple[Rung, ...] = (Rung.OWN, Rung.USED, Rung.NEW)
 
 
 # --------------------------------------------------------------------------
@@ -133,8 +133,9 @@ def _available_to(listing: dict[str, Any], viewer_id: str) -> bool:
     viewer and must never be offered — before this check, another user's shoes
     were recommended as "you already own these".
 
-    BORROW means somebody ELSE owns it and will lend it. The viewer's own item
-    is never something they borrow; it would double-count as OWN.
+    BORROW is retained for legacy listing compatibility but is not part of the
+    active resolver ladder. If encountered by availability checks, it means
+    somebody ELSE owns it and will lend it.
 
     USED and NEW are market listings and belong to nobody.
     """
@@ -302,8 +303,8 @@ def _unmet_reason(need: dict[str, Any], in_category: int, best_rejected: float) 
     label = need.get("label", "this need")
     if in_category == 0:
         return (
-            f"Nothing in your closet, your friends' closets, or the secondhand "
-            f"and new listings falls under {need.get('category', 'this category')}, "
+            f"Nothing in the available owned, secondhand, or new listings falls "
+            f"under {need.get('category', 'this category')}, "
             f"so there was nothing to rank for {label!r}."
         )
     return (
