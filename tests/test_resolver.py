@@ -12,6 +12,7 @@ from apps.api.models.schemas import Rung
 from apps.api.services.resolver import (
     LADDER,
     MATCH_THRESHOLD,
+    MIN_SCORE,
     attribute_overlap,
     preference_bonus,
     resolve_need,
@@ -129,6 +130,114 @@ def test_unrelated_same_category_listing_is_still_rejected(users):
     assert options == []
     assert recommended is None
     assert reason
+
+
+def test_owned_functional_match_survives_detail_mismatch():
+    need = {
+        "category": "top",
+        "attrs": {
+            "formality": "business-casual",
+            "style": "button-down",
+            "color": "white",
+        },
+    }
+    owned = {
+        "rung": "OWN",
+        "attrs": {
+            "formality": "business-casual",
+            "style": "oxford-shirt",
+            "color": "blue",
+        },
+    }
+
+    score = score_listing(owned, need)
+
+    assert score >= MIN_SCORE
+
+
+def test_owned_explicit_functional_contradiction_is_rejected():
+    need = {
+        "category": "outerwear",
+        "attrs": {
+            "formality": "business-casual",
+            "waterproof": True,
+            "color": "navy",
+        },
+    }
+    owned = {
+        "rung": "OWN",
+        "attrs": {
+            "formality": "business-casual",
+            "waterproof": False,
+            "color": "navy",
+        },
+    }
+
+    assert score_listing(owned, need) == 0.0
+
+
+def test_owned_missing_functional_attribute_can_still_be_compatible():
+    need = {
+        "category": "outerwear",
+        "attrs": {"formality": "business-casual", "waterproof": True},
+    }
+    owned = {
+        "rung": "OWN",
+        "attrs": {"formality": "business-casual"},
+    }
+
+    assert score_listing(owned, need) >= MIN_SCORE
+
+
+def test_owned_category_match_without_functional_compatibility_is_rejected():
+    need = {
+        "category": "top",
+        "attrs": {"formality": "business-casual"},
+    }
+    owned = {
+        "rung": "OWN",
+        "attrs": {"color": "navy", "style": "oxford-shirt"},
+    }
+
+    assert score_listing(owned, need) == 0.0
+
+
+def test_owned_detail_match_ranks_above_detail_mismatch():
+    need = {
+        "category": "bottom",
+        "attrs": {
+            "formality": "business-casual",
+            "style": "trousers",
+            "color": "navy",
+        },
+    }
+    matching = {
+        "rung": "OWN",
+        "attrs": {
+            "formality": "business-casual",
+            "style": "trousers",
+            "color": "navy",
+        },
+    }
+    different = {
+        "rung": "OWN",
+        "attrs": {
+            "formality": "business-casual",
+            "style": "jeans",
+            "color": "black",
+        },
+    }
+
+    assert score_listing(matching, need) > score_listing(different, need)
+
+
+def test_owned_detail_only_need_keeps_exact_matching_behavior():
+    need = {"category": "top", "attrs": {"color": "navy"}}
+    exact = {"rung": "OWN", "attrs": {"color": "navy"}}
+    different = {"rung": "OWN", "attrs": {"color": "black"}}
+
+    assert score_listing(exact, need) > score_listing(different, need)
+    assert score_listing(different, need) == 0.0
 
 
 # --- taste nudges but never vetoes -----------------------------------------

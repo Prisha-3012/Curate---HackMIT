@@ -128,6 +128,17 @@ def build_plan(
     mid = mission_id or str(uuid.uuid4())
 
     listings = repo.listings()
+    wardrobe_items = wardrobe.get_wardrobe(user_id)
+    if wardrobe_items:
+        seeded_own_ids = repo.seeded_own_listing_ids()
+        listings = [
+            listing for listing in listings
+            if not (
+                listing.get("id") in seeded_own_ids
+                and listing.get("rung") == Rung.OWN.value
+                and listing.get("owner_id") == user_id
+            )
+        ]
     users = repo.users_by_id()
     prefs = repo.prefs_for(user_id)
 
@@ -135,9 +146,8 @@ def build_plan(
     live_listings = products.fetch_products(goal_text, need_rows)
     if live_listings:
         listings = listings + live_listings
-    listings = listings + wardrobe.to_own_listings(
-        wardrobe.get_wardrobe(user_id), user_id
-    )
+    own_listings = wardrobe.to_own_listings(wardrobe_items, user_id)
+    listings = listings + own_listings
     needs: list[Need] = []
     categories: dict[str, str] = {}
 

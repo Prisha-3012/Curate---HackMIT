@@ -99,3 +99,57 @@ def test_unmet_need_stays_in_the_plan_and_does_not_inflate_impact(monkeypatch):
     # Impact is unchanged by the presence of an unmet need.
     fixture_impact = fixtures.load_as(fixtures.HERO_PLAN, Plan).impact
     assert plan.impact == fixture_impact
+
+
+@pytest.mark.parametrize("from_database", [False, True])
+@pytest.mark.parametrize("scan_state", ["success", "none", "failed-first", "failed-rescan", "other-user"])
+def test_scan_excludes_only_current_users_seeded_own(monkeypatch, from_database, scan_state):
+    from apps.api.services import wardrobe
+    monkeypatch.setattr(wardrobe, "_WARDROBE", {})
+    seed = repo._seed("listings.json")
+    seeded = next(row for row in seed if row["rung"] == "OWN" and row["owner_id"] == DEMO_USER)
+    genuine = {**seeded, "id": "genuine-owned", "title": "Actual possession"}
+    other = {**seeded, "id": "other-owned", "owner_id": "other-user"}
+    # Even a known seed ID is retained if either the rung or owner differs.
+    other_seed_owner = {**seeded, "owner_id": "other-user"}
+    changed_rung = {**seeded, "rung": "USED", "owner_id": None}
+    base = [seeded, genuine, other, other_seed_owner, changed_rung] + [
+        row for row in seed if row["rung"] in ("USED", "NEW")
+    ]
+    if not from_database:
+        base = seed
+    monkeypatch.setattr(repo.client, "select", lambda table, **kw: base if from_database and table == "listings" else [])
+    item = {"category": "footwear", "title": "Scanned pumps", "attrs": {"formality": "business-casual"}}
+    if scan_state in ("success", "failed-rescan"):
+        wardrobe.set_wardrobe(DEMO_USER, [item], "gemini")
+    elif scan_state == "other-user":
+        wardrobe.set_wardrobe("other-user", [item], "gemini")
+    # Failed scans do not write inventory; existing route tests verify this.
+    monkeypatch.setattr(planner, "needs_for_goal", lambda *a, **kw: ([
+        {"id": "need", "label": "Footwear", "rationale": "For the goal", "category": "footwear", "attrs": {}, "priority": 1}
+    ], "live"))
+    captured = []
+    def capture(need, listings, **kwargs):
+        captured.extend(listings)
+        return [], None, "No candidates"
+    monkeypatch.setattr(planner.resolver, "resolve_need", capture)
+    planner.build_plan("A goal", user_id=DEMO_USER)
+    expected = list(base)
+    if scan_state in ("success", "failed-rescan"):
+        ids = repo.seeded_own_listing_ids()
+        expected = [row for row in expected if not (
+            row["id"] in ids and row["rung"] == "OWN" and row.get("owner_id") == DEMO_USER)]
+        expected += wardrobe.to_own_listings([item], DEMO_USER)
+        assert seeded not in captured
+    else:
+        assert seeded in captured
+    assert captured == expected
+    if from_database:
+        assert all(row in captured for row in [genuine, other, other_seed_owner, changed_rung])
+    assert base[0] == seeded  # Filtering must not mutate repository data.
+
+
+def test_seeded_own_ids_identify_only_seed_possessions():
+    expected = {row["id"] for row in repo._seed("listings.json") if row["rung"] == "OWN"}
+    assert repo.seeded_own_listing_ids() == expected
+    assert expected

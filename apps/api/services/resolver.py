@@ -15,6 +15,8 @@ Scoring is plain attribute overlap, no embeddings (per the build order):
   - category is a hard filter
   - each key in need.attrs is worth an equal share; a listing matches a key by
     equality, or by membership if the need states a list of acceptable values
+  - OWN resources treat detail attributes as ranking signals, while explicit
+    functional contradictions remain disqualifying
   - user taste (users.prefs) then nudges the result within +/-PREF_WEIGHT
 
 Taste is a nudge, never a veto: it breaks ties between things that already
@@ -23,33 +25,9 @@ satisfy the need, and it cannot promote something that doesn't.
 
 from __future__ import annotations
 
-import logging
-
 from typing import Any, Iterable, Optional
 
 from apps.api.models.schemas import Option, Rung, needs_fitcheck_for
-
-# Opt in with this logger's DEBUG level; never log the goal, user identity,
-# raw preferences, provider payloads, images, or credentials.
-log = logging.getLogger(__name__)
-
-# Only resource descriptors are safe to print. Unknown attribute values remain
-# redacted in diagnostics, but still participate in scoring without alteration.
-_DIAGNOSTIC_ATTRS = frozenset({
-    "color", "style", "formality", "material", "pattern", "aesthetic", "gender",
-    "collar", "warmth", "sneaker", "fit", "occasion", "comfort", "season",
-    "waterproof", "portable", "reusable", "capacity", "serves", "quantity",
-})
-
-
-def _diagnostic_attrs(attrs: dict[str, Any]) -> dict[str, Any]:
-    return {
-        key if key in _DIAGNOSTIC_ATTRS else "[other attribute %d]" % index:
-        value if key in _DIAGNOSTIC_ATTRS and isinstance(value, (str, int, float, bool))
-        else "[redacted]"
-        for index, (key, value) in enumerate(attrs.items())
-    }
-
 
 #: A candidate must clear this to be recommended for a need.
 MATCH_THRESHOLD = 0.60
@@ -63,6 +41,10 @@ PREF_WEIGHT = 0.10
 
 #: §1's order. Index = preference.
 LADDER: tuple[Rung, ...] = (Rung.OWN, Rung.USED, Rung.NEW)
+
+# These attributes are useful preferences for an owned item, not proof that it
+# cannot serve the need. All other attributes remain functional constraints.
+_OWN_DETAIL_ATTRS = frozenset({"color", "style", "pattern", "aesthetic"})
 
 
 # --------------------------------------------------------------------------
@@ -133,7 +115,36 @@ def score_listing(
     bonus clamps away and taste stops discriminating exactly where it is most
     needed — among several candidates that all satisfy the need.
     """
-    base = attribute_overlap(need.get("attrs") or {}, listing.get("attrs") or {})
+    need_attrs = need.get("attrs") or {}
+    listing_attrs = listing.get("attrs") or {}
+    if listing.get("rung") == Rung.OWN.value and need_attrs:
+        detail_attrs = {
+            key: value for key, value in need_attrs.items() if key in _OWN_DETAIL_ATTRS
+        }
+        functional_attrs = {
+            key: value for key, value in need_attrs.items() if key not in _OWN_DETAIL_ATTRS
+        }
+
+        if functional_attrs:
+            matched_functional = attribute_overlap(functional_attrs, listing_attrs)
+            explicit_contradiction = any(
+                key in listing_attrs
+                and attribute_overlap({key: wanted}, listing_attrs) == 0.0
+                for key, wanted in functional_attrs.items()
+            )
+            if matched_functional <= 0.0 or explicit_contradiction:
+                return 0.0
+            detail_overlap = attribute_overlap(detail_attrs, listing_attrs) if detail_attrs else 0.0
+            base = (
+                matched_functional * 0.85 + detail_overlap * 0.15
+                if detail_attrs
+                else matched_functional
+            )
+        else:
+            # Detail-only needs retain the existing exact-overlap semantics.
+            base = attribute_overlap(need_attrs, listing_attrs)
+    else:
+        base = attribute_overlap(need_attrs, listing_attrs)
     if base <= 0:
         # Nothing about the need is satisfied. Taste is irrelevant.
         return 0.0
@@ -271,9 +282,6 @@ def resolve_need(
     """
     users = users or {}
     wanted_category = need["category"]
-    if log.isEnabledFor(logging.DEBUG):
-        log.debug("matching need attrs=%r", _diagnostic_attrs(need.get("attrs") or {}))
-
     in_category = 0
     best_rejected = 0.0
     best_per_rung: dict[Rung, tuple[float, dict[str, Any]]] = {}
@@ -284,30 +292,6 @@ def resolve_need(
             continue
         in_category += 1
         score = score_listing(listing, need, prefs)
-        if log.isEnabledFor(logging.DEBUG):
-            need_attrs = need.get("attrs") or {}
-            listing_attrs = listing.get("attrs") or {}
-            matched = {
-                key: value for key, value in need_attrs.items()
-                if attribute_overlap({key: value}, listing_attrs) == 1.0
-            }
-            missing = {key: value for key, value in need_attrs.items() if key not in listing_attrs}
-            mismatched = {
-                key: value for key, value in need_attrs.items()
-                if key in listing_attrs and key not in matched
-            }
-            overlap = attribute_overlap(need_attrs, listing_attrs)
-            bonus = preference_bonus(listing, prefs or {}) if overlap > 0 else 0.0
-            contribution = PREF_WEIGHT * (bonus + 1.0) / 2.0 if overlap > 0 else 0.0
-            log.debug(
-                "matching candidate title=%r rung=%r attrs=%r matched=%r "
-                "missing=%r mismatched=%r attribute_overlap=%.6f "
-                "preference_applied=%s preference_bonus=%.6f "
-                "preference_contribution=%.6f final_score=%.2f rejected_below_MIN_SCORE=%s",
-                listing.get("title"), listing.get("rung"), _diagnostic_attrs(listing_attrs),
-                _diagnostic_attrs(matched), _diagnostic_attrs(missing), _diagnostic_attrs(mismatched),
-                overlap, bool(prefs) and overlap > 0, bonus, contribution, score, score < MIN_SCORE,
-            )
         if score < MIN_SCORE:
             best_rejected = max(best_rejected, score)
             continue

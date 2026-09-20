@@ -42,6 +42,12 @@ def listings(*, category: Optional[str] = None) -> list[dict[str, Any]]:
     return [r for r in rows if category is None or r.get("category") == category]
 
 
+
+def seeded_own_listing_ids() -> set[str]:
+    """Known demo possessions, including copies loaded into the database."""
+    return {row["id"] for row in _seed("listings.json") if row.get("rung") == "OWN"}
+
+
 def users_by_id() -> dict[str, dict[str, Any]]:
     try:
         rows = client.select("users")

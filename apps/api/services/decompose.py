@@ -97,7 +97,16 @@ Rules:
 - `category` groups interchangeable solutions. PREFER a value from the known
   list you are given; invent a short lowercase token only if none fits.
 - `attrs` are the properties a solution must have, as flat key/value pairs.
-  Use values from the known attribute vocabulary where they apply.
+  Include only explicit user preferences/constraints or functionally necessary
+  properties. Do not invent style, color, material, product form, or exclusions
+  merely because they describe a plausible solution. Business-casual alone does
+  not require a sweater, oxford shoes, or sneaker=false.
+  Preserve explicit preferences and necessary formality, weather/warmth,
+  waterproofing, capacity, and counts. A material or product form may be required
+  when explicitly requested or functionally essential, not merely conventional.
+  The known attribute vocabulary is naming guidance, not a checklist or a source
+  of requirements. Leave unspecified choices to resource resolution; attrs may
+  be empty. Apply the same restraint to labels and rationales.
 - `rationale` is one sentence a person would find useful, explaining why this
   need exists. It is shown in the UI.
 - If the goal implies a quantity ("dinner for 12"), put it in the label and in
@@ -124,7 +133,7 @@ NEEDS_SCHEMA = {
                     "priority": {"type": "integer", "enum": [1, 2]},
                     "attrs": {
                         "type": "array",
-                        "description": "Flat key/value pairs the solution must satisfy.",
+                        "description": "Only explicit user preferences/constraints or functionally necessary properties; never invent style, color, material, product form, or exclusions. Empty is valid.",
                         "items": {
                             "type": "object",
                             "additionalProperties": False,
@@ -316,6 +325,9 @@ Return ONLY a JSON object of exactly this shape, with no commentary:
 
 Between 2 and {max_needs} entries. `priority` is the integer 1 or 2. `attrs` is
 a flat object of plain string, number or boolean values — never nested.
+Include only explicit user preferences/constraints or functionally necessary
+properties. Do not invent style, color, material, product form, or exclusions.
+An empty attrs object is valid; catalogue values are naming guidance only.
 """
 
 

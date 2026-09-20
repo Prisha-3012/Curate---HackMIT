@@ -491,3 +491,54 @@ def test_a_persistent_5xx_gives_up_after_one_retry(with_settings, monkeypatch):
     _rows, source = decompose.decompose("a goal", mission_id=MISSION)
     assert len(calls) == 2
     assert source == "fixture"
+
+
+@pytest.mark.parametrize("provider", ["openai", "gemini"])
+def test_functional_guidance_and_explicit_constraints_survive(provider, with_settings, monkeypatch):
+    with_settings(**{f"{provider}_api_key": "test-key"})
+    attrs = {"style": "boots", "color": "red", "material": "leather",
+             "waterproof": True, "warmth": "cold", "quantity": 2}
+    seen = {}
+    def capture(url, **kwargs):
+        seen.update(kwargs)
+        return _response(_needs_payload(_need(attrs=attrs)))
+    monkeypatch.setattr(httpx, "post", capture)
+    rows, _ = decompose.decompose(
+        "I explicitly want two red leather boots for cold, wet weather.", mission_id=MISSION)
+    assert rows[0]["attrs"] == attrs
+    system = seen["json"]["messages"][0]["content"]
+    assert "explicit user preferences/constraints or functionally necessary" in system
+    assert "not a checklist" in system
+    assert "sneaker=false" in system
+    assert "labels and rationales" in system
+    if provider == "openai":
+        guidance = seen["json"]["response_format"]["json_schema"]["schema"]["properties"]["needs"]["items"]["properties"]["attrs"]["description"]
+    else:
+        guidance = seen["json"]["messages"][1]["content"]
+    assert "never invent" in guidance or "Do not invent" in guidance
+
+
+def test_functional_internship_rows_reach_planner_unchanged(with_settings, monkeypatch):
+    from apps.api.services import planner, wardrobe
+    with_settings(gemini_api_key="test-key")
+    expected = [
+        {"formality": "business-casual", "quantity": 3},
+        {"formality": "business-casual", "quantity": 3},
+        {"formality": "business-casual"},
+    ]
+    payload = _needs_payload(*[
+        _need(label=category, category=category, attrs=attrs)
+        for category, attrs in zip(["top", "bottom", "footwear"], expected)
+    ])
+    monkeypatch.setattr(httpx, "post", lambda *a, **kw: _response(payload))
+    monkeypatch.setattr(planner.products, "fetch_products", lambda *a: [])
+    monkeypatch.setattr(wardrobe, "get_wardrobe", lambda user: [])
+    seen = []
+    def capture(row, *args, **kwargs):
+        seen.append(row["attrs"])
+        return [], None, "No candidates"
+    monkeypatch.setattr(planner.resolver, "resolve_need", capture)
+    planner.build_plan(
+        "I start my first internship next week. I need enough business-casual clothes "
+        "for three days in-office. I have $100.", user_id="test", budget_cents=10000)
+    assert seen == expected

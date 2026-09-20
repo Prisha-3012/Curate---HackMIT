@@ -5,7 +5,6 @@ import { ResourceVisual } from "./ResourceVisual";
 import { ResourceSourceBadge } from "./ResourceSourceBadge";
 export function ResourceCard({
   resource,
-  needLabel,
   variant = "plan",
   recommended = false,
   selected = false,
@@ -27,7 +26,6 @@ export function ResourceCard({
     >
       <ResourceVisual
         resource={resource}
-        needLabel={needLabel}
         size={variant === "candidate" ? "large" : "small"}
       />
       <div className="resource-card-content">

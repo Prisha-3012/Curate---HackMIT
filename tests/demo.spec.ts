@@ -43,7 +43,7 @@ for (const fixture of fixtures) {
       fixture.sources.map((source) => source.label),
     );
     await expect(
-      page.locator(".resource-pool .resource-visual").first(),
+      page.locator(".resource-pool .resource-card").first(),
     ).toBeVisible();
     await page.screenshot({
       path: `/tmp/enough-${fixture.id}-scouting-v2.png`,
@@ -68,7 +68,7 @@ for (const fixture of fixtures) {
     );
     await expect(page.locator(".plan-item")).toHaveCount(plan.items.length);
     await expect(page.locator(".plan-item .resource-visual")).toHaveCount(
-      plan.items.length,
+      plan.items.filter((item) => item.resource.image).length,
     );
     await expect(page.locator(".unmet-need")).toHaveCount(
       plan.unmetNeedIds.length,
@@ -147,7 +147,7 @@ test("camping comparison keeps source order and recommends adequate borrowing ov
   });
 });
 
-test("failed image becomes a stable physical tag, including after reset", async ({
+test("failed image collapses the visual region, including after reset", async ({
   page,
 }) => {
   await page.route("**/fixtures/camping-lantern.svg", (route) =>
@@ -161,13 +161,10 @@ test("failed image becomes a stable physical tag, including after reset", async 
   const visual = page.locator(
     '[data-resource-id="camp-lantern"] .resource-visual',
   );
-  await expect(visual).toHaveAttribute("data-visual-kind", "beam");
-  await expect(visual.locator("img")).toHaveCount(0);
-  const key = await visual.getAttribute("data-visual-key");
+  await expect(visual).toHaveCount(0);
   await page.getByRole("button", { name: "New mission" }).click();
   await controls.getByRole("button", { name: "plan", exact: true }).click();
-  await expect(visual).toHaveAttribute("data-visual-kind", "beam");
-  await expect(visual).toHaveAttribute("data-visual-key", key!);
+  await expect(visual).toHaveCount(0);
 });
 
 test("reset and fixture change invalidate an outstanding reveal", async ({

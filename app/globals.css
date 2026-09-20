@@ -137,8 +137,8 @@
   --tag-punch-bg: var(--line);
   --tag-punch-line: color-mix(in srgb, var(--line) 55%, var(--muted));
 
-  --font-display: var(--font-serif), Georgia, "Times New Roman", serif;
-  --font-body: var(--font-sans), "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Instrument Serif", Georgia, "Times New Roman", serif;
+  --font-body: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 
   --dur-fast: 140ms;
   --dur-base: 240ms;
@@ -1851,6 +1851,10 @@ main {
   gap: 12px;
   align-items: start;
 }
+.resource-card-plan:not(:has(> .resource-visual)),
+.resource-card-scouting:not(:has(> .resource-visual)) {
+  display: block;
+}
 .resource-card-plan .plan-item-line {
   gap: 7px;
 }
@@ -1922,11 +1926,15 @@ main {
   margin-top: 9px;
 }
 .product-link {
-  display: inline-block;
-  margin-top: 10px;
-  color: var(--moss);
-  font-size: 10px;
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  margin-top: 14px;
+  padding: 6px 0;
+  color: color-mix(in srgb, var(--accent) 78%, var(--ink));
+  font-size: 12px;
   line-height: 1.4;
+  font-weight: 500;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
