@@ -22,6 +22,17 @@ log = logging.getLogger(__name__)
 TAVILY_URL = "https://api.tavily.com/search"
 PRICE_RE = re.compile(r"(?:\$|USD\s*)(\d{1,5}(?:\.\d{2})?)", re.IGNORECASE)
 USED_RE = re.compile(r"\b(used|secondhand|second-hand|pre-owned|preowned)\b", re.IGNORECASE)
+EDITORIAL_PATH_RE = re.compile(
+    r"/(?:blog|article|articles|news|magazine|journal)(?:/|$)", re.IGNORECASE
+)
+INFORMATIONAL_TITLE_RE = re.compile(
+    r"\b(?:how\s+to|what\s+to\s+wear|buying\s+guide|style\s+guide)\b",
+    re.IGNORECASE,
+)
+LISTICLE_TITLE_RE = re.compile(
+    r"\b(?:these|the)\s+\d+\b|\b\d+\s+(?:ways|tips|ideas|things|steps)\b",
+    re.IGNORECASE,
+)
 
 
 def _valid_url(value: Any) -> bool:
@@ -41,6 +52,18 @@ def _price_cents(result: dict[str, Any]) -> int | None:
     return round(float(match.group(1)) * 100) if match else None
 
 
+def _looks_editorial(result: dict[str, Any]) -> bool:
+    """Reject clear article pages, while allowing varied product URL shapes."""
+    title = str(result.get("title") or "")
+    url = result.get("url") or result.get("product_url")
+    path = urlparse(url).path if isinstance(url, str) else ""
+    return bool(
+        EDITORIAL_PATH_RE.search(path)
+        or INFORMATIONAL_TITLE_RE.search(title)
+        or LISTICLE_TITLE_RE.search(title)
+    )
+
+
 def normalize_result(
     result: Any,
     *,
@@ -54,7 +77,12 @@ def normalize_result(
     title = str(result.get("title") or "").strip()
     url = result.get("url") or result.get("product_url")
     price_cents = _price_cents(result)
-    if not title or not _valid_url(url) or price_cents is None:
+    if (
+        not title
+        or not _valid_url(url)
+        or price_cents is None
+        or _looks_editorial(result)
+    ):
         return None
 
     external_id = str(result.get("id") or url).strip()
@@ -84,7 +112,10 @@ def normalize_result(
 
 def _query(goal_text: str, need: dict[str, Any]) -> str:
     attrs = " ".join(f"{key} {value}" for key, value in (need.get("attrs") or {}).items())
-    return f"{goal_text}; {need.get('label', '')}; {attrs}; buy online retailer product"
+    return (
+        f"{goal_text}; {need.get('label', '')}; {attrs}; "
+        "buy online retailer product direct product page buy now current price"
+    )
 
 
 def _request(query: str) -> list[dict[str, Any]]:

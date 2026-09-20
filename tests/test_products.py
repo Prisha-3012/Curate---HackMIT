@@ -1,5 +1,5 @@
 from apps.api.services import products
-from apps.api.services.products import normalize_result
+from apps.api.services.products import _query, normalize_result
 from apps.api.routers.retailer import retailer_redirect
 from apps.api.models.schemas import RetailerRedirectRequest
 
@@ -35,6 +35,52 @@ def test_normalize_result_marks_secondhand_items_used():
 
     assert row is not None
     assert row["rung"] == "USED"
+
+
+def test_normalize_result_rejects_obvious_editorial_results():
+    editorial = {
+        "title": "Stock Your Internship Wardrobe with These 16 Best Business Casual Outfits",
+        "url": "https://fashion.example/articles/internship-wardrobe",
+        "content": "Shop these looks and prices from $89.",
+    }
+
+    assert normalize_result(editorial, category="outerwear") is None
+
+
+def test_normalize_result_rejects_informational_titles_even_without_editorial_path():
+    editorial = {
+        "title": "What to Wear in an Air Conditioned Office in Summer",
+        "url": "https://fashion.example/summer-office",
+        "content": "Ideas from $89.",
+    }
+
+    assert normalize_result(editorial, category="outerwear") is None
+
+
+def test_normalize_result_accepts_non_clothing_product_pages():
+    row = normalize_result(
+        {
+            "title": "Two-burner camping stove",
+            "url": "https://outdoor.example/shop/two-burner-stove",
+            "content": "Portable stove, $64.99",
+        },
+        category="cooking equipment",
+    )
+
+    assert row is not None
+    assert row["product_url"] == "https://outdoor.example/shop/two-burner-stove"
+    assert row["price_cents"] == 6499
+
+
+def test_query_biases_toward_direct_purchase_pages():
+    query = _query(
+        "camping trip",
+        {"label": "cook hot food", "attrs": {"capacity": "two people"}},
+    )
+
+    assert "direct product page" in query
+    assert "buy now" in query
+    assert "current price" in query
 
 
 def test_normalize_result_uses_need_attrs_for_live_results_without_attrs():
