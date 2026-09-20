@@ -32,6 +32,8 @@ export interface Resource {
   condition?: string;
   image?: string;
   productUrl?: string;
+  /** Secondhand search links for USED items (eBay, Depop, …). */
+  marketplaces?: { name: string; url: string }[];
   imageAlt?: string;
   visual?: VisualMotif;
   matchScore?: number;

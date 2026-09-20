@@ -220,12 +220,49 @@ def _print_summary(all_photos, status):
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python photoshoot.py <garment_image> [garment_description]")
-        sys.exit(1)
-    garment = sys.argv[1]
-    desc = sys.argv[2] if len(sys.argv) > 2 else None
-    if not os.path.exists(garment):
+    # Two ways to name the garment:
+    #   python photoshoot.py <garment_image> [description]
+    #   python photoshoot.py --product <spec.json|url>   (curated catalog garment)
+    # --product loads the image, description AND size chart from the spec, so the
+    # size recommendation uses that garment's real chart instead of a built-in.
+    argv = sys.argv[1:]
+    product_spec = None
+    positional = []
+    i = 0
+    while i < len(argv):
+        if argv[i] == "--product":
+            if i + 1 >= len(argv):
+                print("Usage: python photoshoot.py --product <spec.json|url>")
+                sys.exit(1)
+            product_spec = argv[i + 1]
+            i += 2
+        else:
+            positional.append(argv[i])
+            i += 1
+
+    product_chart = None
+    product_name = None
+    if product_spec is not None:
+        try:
+            from product import load_product
+            p = load_product(product_spec)
+        except Exception as e:
+            print(f"Could not load product spec {product_spec!r}: {e}")
+            sys.exit(1)
+        garment = p.get("image_path")
+        desc = p.get("description")
+        product_chart = p.get("size_chart")
+        product_name = p.get("name") or p.get("brand")
+        print(f"Using product: {product_name}  (garment image: {garment})")
+    else:
+        if not positional:
+            print("Usage: python photoshoot.py <garment_image> [garment_description]")
+            print("   or: python photoshoot.py --product <spec.json|url>")
+            sys.exit(1)
+        garment = positional[0]
+        desc = positional[1] if len(positional) > 1 else None
+
+    if not garment or not os.path.exists(garment):
         print(f"Garment image not found: {garment}")
         sys.exit(1)
 
@@ -271,8 +308,13 @@ def main():
             from size_chart import fit_confidence, BRAND_SIZE_CHARTS
             pose = extract_keypoints(good[0])
             m = compute_measurements(pose, height_cm, weight_kg=weight_kg)
-            brand = next(iter(BRAND_SIZE_CHARTS))
-            fit = fit_confidence(m, brand)
+            if product_chart:
+                # Size against THIS garment's chart, not a generic built-in one.
+                brand = product_name or "product"
+                fit = fit_confidence(m, chart=product_chart)
+            else:
+                brand = next(iter(BRAND_SIZE_CHARTS))
+                fit = fit_confidence(m, brand)
             size_line = f"Recommended size: {fit.recommended_size}  (confidence {fit.confidence})"
             size_block = (
                 f"{size_line}\n"

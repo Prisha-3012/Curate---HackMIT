@@ -17,7 +17,7 @@ from typing import Any, Optional
 
 from apps.api.db import repo
 from apps.api.models.schemas import Need, Plan, Rung
-from apps.api.services import decompose, products, resolver, savings, wardrobe
+from apps.api.services import decompose, products, resolver, savings, secondhand, wardrobe
 
 log = logging.getLogger(__name__)
 
@@ -145,6 +145,10 @@ def build_plan(
         options, recommended, unmet_reason = resolver.resolve_need(
             row, listings, users=users, viewer_id=user_id, prefs=prefs
         )
+        # Attach secondhand marketplace links to USED options so they are as
+        # buyable as NEW ones. Ids are unchanged, so `recommended` still points
+        # at the right option.
+        options = secondhand.enrich_used_options(options, row)
         categories[row["id"]] = row["category"]
         needs.append(
             Need(

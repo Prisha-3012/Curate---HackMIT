@@ -1,0 +1,16 @@
+{
+  "name": "Uniqlo Unisex Oxford Slim Shirt",
+  "brand": "uniqlo_oxford_slim",
+  "category": "top",
+  "fit": "slim",
+  "description": "light blue slim-fit long-sleeve cotton oxford button-down shirt",
+  "product_url": "https://www.uniqlo.com/us/en/products/E456630-000/00",
+  "image_url": "https://image.uniqlo.com/UQ/ST3/us/imagesgoods/456630/item/usgoods_64_456630_3x4.jpg",
+  "size_chart": {
+    "XS": {"chest_cm": [78, 85], "shoulder_cm": [39, 42]},
+    "S":  {"chest_cm": [85, 92], "shoulder_cm": [42, 44]},
+    "M":  {"chest_cm": [92, 99], "shoulder_cm": [44, 46]},
+    "L":  {"chest_cm": [99, 106], "shoulder_cm": [46, 48]},
+    "XL": {"chest_cm": [106, 113], "shoulder_cm": [48, 51]}
+  }
+}
