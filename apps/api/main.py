@@ -13,7 +13,7 @@ from apps.api.config import get_settings
 from apps.api.db import repo
 from apps.api.services import payments
 from apps.api.demo import DemoModeMiddleware
-from apps.api.routers import checkout, converse, mission, voice
+from apps.api.routers import checkout, converse, mission, retailer, voice
 
 #: §6, verbatim.
 DEMO_MODE = os.getenv("DEMO_MODE", "off")
@@ -51,6 +51,7 @@ app.add_middleware(DemoModeMiddleware)
 app.include_router(mission.router)
 app.include_router(converse.router)
 app.include_router(checkout.router)
+app.include_router(retailer.router)
 app.include_router(voice.router)
 
 
