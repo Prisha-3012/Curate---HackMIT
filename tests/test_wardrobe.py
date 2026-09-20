@@ -145,3 +145,86 @@ def test_active_ladder_and_all_existing_routes_are_preserved():
     paths = set(app.openapi()["paths"])
     assert {"/api/mission", "/api/converse", "/api/checkout", "/api/retailer/redirect",
             "/api/voice/transcribe", "/api/wardrobe", "/api/wardrobe/{user_id}"} <= paths
+
+
+def gemini_sequence(monkeypatch, outcomes, provider="gemini"):
+    monkeypatch.setattr(wardrobe, "_pick_vision_provider", lambda: (
+        provider, "https://vision.invalid/chat", "vision-model", "test-key"))
+    calls, delays = [], []
+    monkeypatch.setattr(wardrobe.time, "sleep", delays.append)
+    def post(*args, **kwargs):
+        calls.append(kwargs)
+        outcome = outcomes[len(calls) - 1]
+        if isinstance(outcome, Exception):
+            raise outcome
+        status, payload = outcome
+        return httpx.Response(status, json=payload,
+                              request=httpx.Request("POST", "https://vision.invalid/chat"))
+    monkeypatch.setattr(wardrobe.httpx, "post", post)
+    return calls, delays
+
+
+def detected_response():
+    return (200, {"choices": [{"message": {"content": json.dumps({"items": [RAW]})}}]})
+
+
+@pytest.mark.parametrize("failure", [
+    (429, {"error": "rate limited"}), (503, {"error": "overloaded"}),
+    httpx.ReadTimeout("timeout"),
+])
+def test_gemini_transient_failure_retries_once_then_succeeds(monkeypatch, failure):
+    calls, delays = gemini_sequence(monkeypatch, [failure, detected_response()])
+    items, source = wardrobe.analyze_wardrobe(b"photo")
+    assert source == "gemini" and len(items) == 1
+    assert len(calls) == 2 and delays == [0.5]
+    assert calls[0] == calls[1]
+
+
+@pytest.mark.parametrize("failure", [
+    (429, {"error": "rate limited"}), (503, {"error": "overloaded"}),
+    httpx.ReadTimeout("timeout"),
+])
+def test_gemini_two_transient_failures_return_honest_error(monkeypatch, failure):
+    calls, delays = gemini_sequence(monkeypatch, [failure, failure])
+    assert wardrobe.analyze_wardrobe(b"photo") == ([], "error")
+    assert len(calls) == 2 and delays == [0.5]
+
+
+@pytest.mark.parametrize("status", [400, 401, 403, 413, 422])
+def test_gemini_permanent_failure_is_not_retried(monkeypatch, status):
+    calls, delays = gemini_sequence(monkeypatch, [(status, {"error": "invalid request"})])
+    assert wardrobe.analyze_wardrobe(b"photo") == ([], "error")
+    assert len(calls) == 1 and delays == []
+
+
+@pytest.mark.parametrize("payload,source", [
+    ({"items": []}, "none"), ({"items": "malformed"}, "error"),
+])
+def test_gemini_empty_or_malformed_detection_is_not_retried(monkeypatch, payload, source):
+    calls, delays = gemini_sequence(monkeypatch, [
+        (200, {"choices": [{"message": {"content": json.dumps(payload)}}]})
+    ])
+    assert wardrobe.analyze_wardrobe(b"photo") == ([], source)
+    assert len(calls) == 1 and delays == []
+
+
+def test_other_providers_do_not_gain_retries(monkeypatch):
+    calls, delays = gemini_sequence(monkeypatch, [(503, {})], provider="groq")
+    assert wardrobe.analyze_wardrobe(b"photo") == ([], "error")
+    assert len(calls) == 1 and delays == []
+
+
+def test_exhausted_gemini_retry_preserves_successful_wardrobe(monkeypatch):
+    calls, delays = gemini_sequence(monkeypatch, [
+        detected_response(), (503, {"error": "overloaded"}), (503, {"error": "overloaded"}),
+    ])
+    with TestClient(app) as client:
+        previous = client.post("/api/wardrobe", data={"user_id": "A"},
+                               files={"image": ("closet.png", b"photo")})
+        assert previous.json()["count"] == 1
+        failed = client.post("/api/wardrobe", data={"user_id": "A"},
+                             files={"image": ("closet.png", b"photo")})
+        assert failed.json() == {"items": [], "count": 0, "source": "error"}
+        assert failed.headers["X-Wardrobe-Source"] == "error"
+        assert client.get("/api/wardrobe/A").json() == previous.json()
+    assert len(calls) == 3 and delays == [0.5]

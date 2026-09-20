@@ -9,6 +9,7 @@ from __future__ import annotations
 import base64
 import json
 import logging
+import time
 import uuid
 from typing import Any, Optional
 
@@ -211,8 +212,20 @@ def analyze_wardrobe(
     headers = {"Authorization": f"Bearer {key}"}
 
     try:
-        r = httpx.post(url, headers=headers, json=body, timeout=get_settings().llm_timeout_s)
-        r.raise_for_status()
+        for attempt in range(2):
+            try:
+                r = httpx.post(url, headers=headers, json=body, timeout=get_settings().llm_timeout_s)
+                r.raise_for_status()
+                break
+            except (httpx.HTTPStatusError, httpx.TimeoutException) as exc:
+                transient = (
+                    isinstance(exc, httpx.TimeoutException)
+                    or exc.response.status_code in (429, 503)
+                )
+                if name != "gemini" or attempt == 1 or not transient:
+                    raise
+                # One bounded retry for Gemini overload/rate limiting/timeouts.
+                time.sleep(0.5)
         content = r.json()["choices"][0]["message"]["content"]
         items = _parse_items(json.loads(content))
     except (httpx.HTTPError, KeyError, IndexError, ValueError, TypeError) as exc:
