@@ -2,7 +2,7 @@ export function EnoughLogo() {
   return (
     <div className="brand" aria-label="Curate, powered by Otto">
       <span className="wordmark">
-        CURATE<span className="brand-period">.</span>
+        curate<span className="brand-period">.</span>
       </span>
       <span className="brand-byline">
         powered by <strong>Otto</strong>

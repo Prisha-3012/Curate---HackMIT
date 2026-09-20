@@ -36,10 +36,10 @@
   --ground: #14171e;
   --surface: #1c212b;
   --ink: #e8e7e2;
-  --muted: #939aa8;
+  --muted: #b2b8c3;
   --line: #2a3040;
   --accent: #8fa2d8;
-  --soft: #5a6894;
+  --soft: #7d8bb4;
   --new: #d9a055;
 
   /* the savings panel is a raised slab in dark, an inverted one in light */
@@ -281,7 +281,7 @@ svg {
 }
 .wordmark {
   font-family: var(--font-display);
-  font-size: 28px;
+  font-size: clamp(28px, 3vw, 32px);
   font-weight: 500;
   letter-spacing: -1px;
   line-height: 1;
@@ -399,15 +399,15 @@ main {
   font-size: 20px;
 }
 .lead {
-  font-size: 16px;
+  font-size: 17px;
   line-height: 1.65;
-  color: var(--muted);
+  color: color-mix(in srgb, var(--muted) 92%, var(--ink));
   margin-top: 20px;
 }
 .demo-note {
-  font-size: 9px;
-  letter-spacing: 1px;
-  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.2px;
+  color: color-mix(in srgb, var(--muted) 92%, var(--ink));
   margin-top: 30px;
   line-height: 1.7;
 }
@@ -433,7 +433,9 @@ main {
   gap: 20px;
   border-radius: 4px;
   padding: 15px 21px;
-  font-size: 12px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.25;
   font-weight: 600;
   border: 1px solid transparent;
   white-space: nowrap;
@@ -452,7 +454,8 @@ main {
   border: 0;
   background: none;
   color: var(--moss);
-  font-size: 11px;
+  font-family: var(--font-body);
+  font-size: 13px;
   text-decoration: underline;
   text-underline-offset: 4px;
   padding: 10px 0;
@@ -501,10 +504,10 @@ main {
   background: transparent;
   border: 0;
   outline: none;
-  font-family: var(--font-display);
-  font-size: 24px;
-  line-height: 1.6;
-  letter-spacing: -0.3px;
+  font-family: var(--font-body);
+  font-size: 18px;
+  line-height: 1.5;
+  letter-spacing: 0;
   color: var(--ink);
 }
 .mission-composer textarea:focus-visible {
@@ -512,7 +515,8 @@ main {
   outline-offset: 5px;
 }
 .mission-composer textarea::placeholder {
-  color: var(--faint);
+  color: var(--muted);
+  opacity: 1;
 }
 .composer-bottom {
   display: flex;
@@ -542,15 +546,15 @@ main {
   display: flex;
   align-items: center;
   gap: 5px;
-  color: var(--faint);
-  font-size: 10px;
+  color: color-mix(in srgb, var(--muted) 92%, var(--ink));
+  font-size: 12px;
 }
 /* Says out loud what the mic is doing. The dot pulses opacity, never size. */
 .voice-status {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--moss);
 }
 .voice-status i {
@@ -569,7 +573,7 @@ main {
   border: 1px solid var(--line);
   border-radius: 6px;
   background: var(--surface-soft);
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
   animation: reveal var(--dur-base) var(--ease-out) both;
 }
@@ -607,8 +611,8 @@ main {
   align-items: center;
   gap: 12px;
   margin-top: 18px;
-  font-size: 11px;
-  color: var(--muted);
+  font-size: 13px;
+  color: color-mix(in srgb, var(--muted) 92%, var(--ink));
 }
 .example-row button {
   display: flex;
@@ -618,7 +622,9 @@ main {
   border: 1px solid var(--line);
   border-radius: 30px;
   padding: 9px 13px;
-  font-size: 11px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.35;
   color: var(--ink);
 }
 .example-row button:hover {
@@ -702,9 +708,9 @@ main {
 }
 .mission-hint {
   margin-top: 14px;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.7;
-  color: var(--muted);
+  color: color-mix(in srgb, var(--muted) 92%, var(--ink));
 }
 .mission-hint em {
   font-style: normal;
@@ -719,9 +725,9 @@ main {
   text-align: left;
 }
 .mission-promise p {
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.65;
-  color: var(--muted);
+  color: color-mix(in srgb, var(--muted) 92%, var(--ink));
 }
 .mission-promise p span {
   color: var(--moss);
@@ -2152,6 +2158,9 @@ main {
   .site-header {
     height: 92px;
   }
+  .wordmark {
+    font-size: 28px;
+  }
   .header-right {
     gap: 6px;
   }
@@ -2499,17 +2508,32 @@ main {
 /* Optional inventory check, kept secondary to the goal composer. */
 .closet-check {
   margin: 20px 0;
-  padding: 20px;
-  border: 1px solid var(--line, #deddd3);
-  border-radius: 16px;
+  padding: 16px 20px;
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--surface));
+  border-radius: 10px;
   text-align: left;
-  background: rgba(255, 255, 255, 0.3);
+  background: color-mix(in srgb, var(--surface) 82%, var(--ground));
+  box-shadow: none;
 }
 .closet-heading { display: flex; align-items: center; gap: 8px; }
-.closet-heading > span { margin-left: auto; font-size: 12px; opacity: 0.6; }
-.closet-check p { font-size: 14px; line-height: 1.6; margin: 10px 0; }
+.closet-heading strong { color: var(--ink); }
+.closet-heading > span { margin-left: auto; font-size: 13px; color: color-mix(in srgb, var(--muted) 86%, var(--surface)); }
+.closet-check p { font-size: 15px; line-height: 1.6; margin: 10px 0; color: color-mix(in srgb, var(--muted) 92%, var(--ink)); }
 .closet-items { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .closet-items li { border: 1px solid var(--line, #deddd3); border-radius: 8px; padding: 8px 12px; }
-.closet-items strong { display: block; font-size: 13px; font-weight: 500; }
-.closet-items span { font-size: 11px; opacity: 0.65; }
-.closet-check .closet-note { font-size: 12px; opacity: 0.65; margin-bottom: 0; }
+.closet-items strong { display: block; font-size: 14px; font-weight: 500; }
+.closet-items span { font-size: 12px; color: color-mix(in srgb, var(--muted) 86%, var(--surface)); }
+.closet-check .closet-note { font-size: 13px; color: color-mix(in srgb, var(--muted) 86%, var(--surface)); margin-bottom: 0; }
+.closet-check .button.secondary {
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--surface));
+  color: color-mix(in srgb, var(--accent) 78%, var(--ink));
+  box-shadow: none;
+  font-size: 13px;
+  padding: 11px 16px;
+}
+.closet-check .button.secondary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--surface));
+  color: var(--ink);
+}
